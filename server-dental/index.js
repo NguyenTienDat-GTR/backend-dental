@@ -8,6 +8,8 @@ const IP = process.env.IP_SERVER;
 const app = express();
 const http = require("http").createServer(app);
 
+const { connectToMongoDB } = require("./database/connectToMongoDB")
+
 // Cấu hình CORS
 const corsOptions = {
     origin: "*", // Cho phép tất cả các domain. Thay đổi thành domain cụ thể nếu cần.
@@ -26,5 +28,6 @@ app.get("/", (req, res) => {
 
 app.listen(port, () => {
     //ket noi database
+    connectToMongoDB();
     console.log(`Server is running on ${IP}${port}`);
 });
