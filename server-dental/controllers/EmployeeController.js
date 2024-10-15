@@ -51,7 +51,7 @@ const validateBirthDate = (birthDate) => {
 const createEmployee = async (req, res) => {
     try {
         // Lấy thông tin từ request body
-        const { employeeName, gender, employeePhone, employeeEmail, citizenID, address, employeeSpecialization, birthDate, workingTime, role, createBy } = req.body;
+        const { employeeName, gender, employeePhone, employeeEmail, citizenID, address, employeeSpecialization, birthDate, workingTime, position, createBy } = req.body;
 
         let urlAvatar = "";
         // console.log(req.body);
@@ -125,7 +125,7 @@ const createEmployee = async (req, res) => {
             workingTime,
             employeeSpecialization,
             urlAvatar,
-            role,
+            position,
             createBy,
         });
 

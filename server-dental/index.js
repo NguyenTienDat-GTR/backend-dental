@@ -7,10 +7,12 @@ const IP = process.env.IP_SERVER;
 
 const app = express();
 const http = require("http").createServer(app);
+const cookieParser = require('cookie-parser');
 
 const { connectToMongoDB } = require("./database/connectToMongoDB")
 const employeeRoute = require("./routes/EmployeeRoute");
 const accountRoute = require("./routes/AccountRoute");
+const authRoute = require("./routes/AuthRoute");
 
 // Cấu hình CORS
 const corsOptions = {
@@ -23,6 +25,7 @@ app.use(cors(corsOptions));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 app.get("/", (req, res) => {
     res.send("Welcome to the homepage!");
@@ -36,3 +39,4 @@ app.listen(port, () => {
 
 app.use('/employee', employeeRoute);
 app.use('/account', accountRoute);
+app.use('/auth', authRoute);

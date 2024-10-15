@@ -82,7 +82,7 @@ const Employee = new mongoose.Schema({
         required: true,
         default: true,
     },
-    role: {
+    position: {
         type: String,
         enum: ["doctor", "receptionist"],
         required: true,
