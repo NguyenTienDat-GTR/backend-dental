@@ -10,6 +10,7 @@ const http = require("http").createServer(app);
 
 const { connectToMongoDB } = require("./database/connectToMongoDB")
 const doctorRoute = require("./routes/DoctorRoute");
+const accountRoute = require("./routes/AccountRoute");
 
 // Cấu hình CORS
 const corsOptions = {
@@ -34,3 +35,4 @@ app.listen(port, () => {
 });
 
 app.use('/doctor', doctorRoute);
+app.use('/account', accountRoute);

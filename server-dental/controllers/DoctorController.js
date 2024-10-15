@@ -67,14 +67,20 @@ const createDoctor = async (req, res) => {
 
         if (!doctorPhone || !validatePhone(doctorPhone)) {
             return res.status(400).json({ message: "Số điện thoại bắt đầu bằng 0, có 10 số, không chứa chữ cái và kí tự đặc biệt" });
+        } else if (await Doctor.findOne({ doctorPhone })) {
+            return res.status(400).json({ message: "Số điện thoại đã tồn tại" });
         }
 
         if (!doctorEmail || !validateEmail(doctorEmail)) {
             return res.status(400).json({ message: "Email sai định dạng" });
+        } else if (await Doctor.findOne({ doctorEmail })) {
+            return res.status(400).json({ message: "Email đã tồn tại" });
         }
 
         if (!citizenID || !validateCitizenID(citizenID)) {
             return res.status(400).json({ message: "Số căn cước phải đú 12 số, không chứa chữ cái và kí tự đặc biệt" });
+        } else if (await Doctor.findOne({ citizenID })) {
+            return res.status(400).json({ message: "Số căn cước đã tồn tại" });
         }
 
         if (!address || !validateAddress(address)) {
