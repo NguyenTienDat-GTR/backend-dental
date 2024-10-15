@@ -1,30 +1,36 @@
 const mongoose = require("mongoose");
 
-const doctorSchema = new mongoose.Schema({
-    doctorID: {
+// Hàm để lấy thời gian theo múi giờ Việt Nam dưới dạng chuỗi
+const getVietnamTimeString = () => {
+    const now = new Date();
+    return now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
+};
+
+const Employee = new mongoose.Schema({
+    employeeID: {
         type: String,
         required: true,
         unique: true,
     },
-    doctorName: {
+    employeeName: {
         type: String,
         required: true,
     },
     gender: {
+        type: String,
         enum: ["male", "female"],
         required: true,
-        type: String,
     },
     birthDate: {
-        type: Date,
+        type: String,
         required: true,
     },
-    doctorPhone: {
+    employeePhone: {
         type: String,
         required: true,
         unique: true,
     },
-    doctorEmail: {
+    employeeEmail: {
         type: String,
         required: true,
         unique: true,
@@ -51,17 +57,17 @@ const doctorSchema = new mongoose.Schema({
                     "Friday",
                     "Saturday",
                     "Sunday",
-                ], // Chỉ định các ngày trong tuần
+                ],
             },
             timeSlots: [
                 {
-                    type: String, // Chứa các khoảng thời gian trong ngày, ví dụ '8:00-12:00, 13:00-17:00'
+                    type: String,
                     required: true,
                 },
             ],
         },
     ],
-    doctorSpecialization: [
+    employeeSpecialization: [
         {
             type: String,
             required: true,
@@ -76,6 +82,20 @@ const doctorSchema = new mongoose.Schema({
         required: true,
         default: true,
     },
+    role: {
+        type: String,
+        enum: ["doctor", "receptionist"],
+        required: true,
+    },
+    createBy: {
+        type: String,
+        required: true,
+    },
+    createAt: {
+        type: String,  // Thay đổi từ Date sang String
+        required: true,
+        default: getVietnamTimeString, // Sử dụng chuỗi thời gian Việt Nam
+    },
 });
 
-module.exports = mongoose.model("Doctor", doctorSchema);
+module.exports = mongoose.model("Employee", Employee);

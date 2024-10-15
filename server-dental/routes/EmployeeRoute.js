@@ -3,8 +3,8 @@ const router = express.Router();
 
 
 const { uploadAvatarMiddleware, handleFileSizeError } = require('../middlewares/uploadAvatar');
-const { createDoctor } = require('../controllers/DoctorController');
+const { createEmployee } = require('../controllers/EmployeeController');
 
-router.post('/create', uploadAvatarMiddleware.single('doctorAvatar'), handleFileSizeError, createDoctor);
+router.post('/create', uploadAvatarMiddleware.single('employeeAvatar'), handleFileSizeError, createEmployee);
 
 module.exports = router;

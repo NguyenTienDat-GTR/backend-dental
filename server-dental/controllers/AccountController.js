@@ -1,10 +1,10 @@
 const bcrypt = require("bcrypt");
 const Account = require("../models/Account");
-const Doctor = require("../models/Doctor");
+const Employee = require("../models/Employee");
 const { sendAccountCreationEmail } = require("../middlewares/sendMessage");
 
 const createAccount = async (req, res) => {
-    const { username, role } = req.body;
+    const { username, role, createBy } = req.body;
 
     try {
         // Kiểm tra xem username đã tồn tại chưa
@@ -21,11 +21,10 @@ const createAccount = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Tìm bác sĩ dựa trên doctorID
-        const doctor = await Doctor.findOne({ doctorID: username });
-        console.log(`Searching for doctor with ID: ${username}`);
-        console.log(doctor);
-        if (!doctor) {
-            return res.status(404).json({ message: "Bác sĩ không tồn tại." });
+        const employee = await Employee.findOne({ employeeID: username });
+
+        if (!employee) {
+            return res.status(404).json({ message: "Người dùng không tồn tại." });
         }
 
         // Tạo tài khoản mới
@@ -33,13 +32,14 @@ const createAccount = async (req, res) => {
             username,
             password: hashedPassword,
             role,
+            createBy,
         });
 
         // Lưu tài khoản vào database
         await newAccount.save();
 
         // Gửi tin nhắn chứa thông tin tài khoản đến số điện thoại của bác sĩ
-        await sendAccountCreationEmail(doctor.doctorEmail, doctor.doctorName, username, password);
+        await sendAccountCreationEmail(employee.employeeEmail, employee.employeeName, username, password);
 
         return res.status(201).json({ message: "Account created successfully" });
     } catch (error) {

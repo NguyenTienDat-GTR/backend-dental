@@ -9,7 +9,7 @@ const app = express();
 const http = require("http").createServer(app);
 
 const { connectToMongoDB } = require("./database/connectToMongoDB")
-const doctorRoute = require("./routes/DoctorRoute");
+const employeeRoute = require("./routes/EmployeeRoute");
 const accountRoute = require("./routes/AccountRoute");
 
 // Cấu hình CORS
@@ -34,5 +34,5 @@ app.listen(port, () => {
     console.log(`Server is running on ${IP}${port}`);
 });
 
-app.use('/doctor', doctorRoute);
+app.use('/employee', employeeRoute);
 app.use('/account', accountRoute);

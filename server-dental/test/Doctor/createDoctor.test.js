@@ -2,7 +2,7 @@ const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const { createDoctor } = require('../../controllers/DoctorController');
+const { createDoctor } = require('../../controllers/EmployeeController');
 const Doctor = require('../../models/Doctor');
 
 const app = express();

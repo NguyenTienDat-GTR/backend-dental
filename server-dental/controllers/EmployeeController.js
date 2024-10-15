@@ -1,4 +1,5 @@
-const Doctor = require("../models/Doctor");
+const Employee = require("../models/Employee");
+const Account = require("../models/Account");
 const { generateID } = require("../utils/generateId");
 
 // Hàm để kiểm tra định dạng email
@@ -47,17 +48,17 @@ const validateBirthDate = (birthDate) => {
     return date instanceof Date && !isNaN(date);// kiểm tra xem date có phải là kiểu Date và không phải là NaN
 }
 
-const createDoctor = async (req, res) => {
+const createEmployee = async (req, res) => {
     try {
         // Lấy thông tin từ request body
-        const { doctorName, gender, doctorPhone, doctorEmail, citizenID, address, doctorSpecialization, birthDate, workingTime } = req.body;
+        const { employeeName, gender, employeePhone, employeeEmail, citizenID, address, employeeSpecialization, birthDate, workingTime, role, createBy } = req.body;
 
         let urlAvatar = "";
         // console.log(req.body);
 
 
         // Validate thông tin đầu vào
-        if (!doctorName || !validateName(doctorName)) {
+        if (!employeeName || !validateName(employeeName)) {
             return res.status(400).json({ message: "Tên sai định dạng. Không được chứa kí tự đặc biệt hoặc số" });
         }
 
@@ -65,21 +66,21 @@ const createDoctor = async (req, res) => {
             return res.status(400).json({ message: "Giới tính không được bỏ trống" });
         }
 
-        if (!doctorPhone || !validatePhone(doctorPhone)) {
+        if (!employeePhone || !validatePhone(employeePhone)) {
             return res.status(400).json({ message: "Số điện thoại bắt đầu bằng 0, có 10 số, không chứa chữ cái và kí tự đặc biệt" });
-        } else if (await Doctor.findOne({ doctorPhone })) {
+        } else if (await Employee.findOne({ employeePhone })) {
             return res.status(400).json({ message: "Số điện thoại đã tồn tại" });
         }
 
-        if (!doctorEmail || !validateEmail(doctorEmail)) {
+        if (!employeeEmail || !validateEmail(employeeEmail)) {
             return res.status(400).json({ message: "Email sai định dạng" });
-        } else if (await Doctor.findOne({ doctorEmail })) {
+        } else if (await Employee.findOne({ employeeEmail })) {
             return res.status(400).json({ message: "Email đã tồn tại" });
         }
 
         if (!citizenID || !validateCitizenID(citizenID)) {
-            return res.status(400).json({ message: "Số căn cước phải đú 12 số, không chứa chữ cái và kí tự đặc biệt" });
-        } else if (await Doctor.findOne({ citizenID })) {
+            return res.status(400).json({ message: "Số căn cước phải đủ 12 số, không chứa chữ cái và kí tự đặc biệt" });
+        } else if (await Employee.findOne({ citizenID })) {
             return res.status(400).json({ message: "Số căn cước đã tồn tại" });
         }
 
@@ -91,7 +92,7 @@ const createDoctor = async (req, res) => {
             return res.status(400).json({ message: "Thời gian làm việc không được để trống" });
         }
 
-        if (!validateSpecialization(doctorSpecialization)) {
+        if (!validateSpecialization(employeeSpecialization)) {
             return res.status(400).json({ message: "Bằng cấp không được để trống" });
         }
 
@@ -106,36 +107,40 @@ const createDoctor = async (req, res) => {
             urlAvatar = req.file.path;
         }
 
+        // const createrID = await Account.findOne({ username: createBy });
+
         // Tạo doctorID bằng cách gọi hàm generateID
-        const doctorID = await generateID(birthDate, doctorPhone, citizenID);
+        const employeeID = await generateID(birthDate, employeePhone, citizenID);
 
         // Tạo một bác sĩ mới
-        const newDoctor = new Doctor({
-            doctorID,
-            doctorName,
+        const newEmployee = new Employee({
+            employeeID,
+            employeeName,
             gender,
             birthDate,
-            doctorPhone,
-            doctorEmail,
+            employeePhone,
+            employeeEmail,
             citizenID,
             address,
             workingTime,
-            doctorSpecialization,
+            employeeSpecialization,
             urlAvatar,
+            role,
+            createBy,
         });
 
-        // Lưu bác sĩ vào cơ sở dữ liệu
-        await newDoctor.save();
+        // Lưu nhân viên vào cơ sở dữ liệu
+        await newEmployee.save();
 
         // Trả về phản hồi thành công
         return res.status(201).json({
-            message: "Thêm bác sĩ mới thành công",
-            doctor: newDoctor,
+            message: "Thêm nhân viên mới thành công",
+            employee: newEmployee,
         });
     } catch (error) {
-        console.error('Error in create Doctor', JSON.stringify(error, null, 2));
+        console.error('Error in create Employee', JSON.stringify(error, null, 2));
         return res.status(500).json({ message: "Internal server error" });
     }
 };
 
-module.exports = { createDoctor };
+module.exports = { createEmployee };
