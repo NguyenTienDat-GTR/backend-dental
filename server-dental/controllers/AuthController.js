@@ -65,6 +65,11 @@ const Login = async (req, res) => {
             return res.status(400).json({ message: "Tài khoản không tồn tại" });
         }
 
+        const isActive = existAccount.isActive;
+        if (!isActive) {
+            return res.status(400).json({ message: "Tài khoản đã bị khóa" });
+        }
+
         // So sánh mật khẩu
         const isMatch = await bcrypt.compare(password, existAccount.password);
 
