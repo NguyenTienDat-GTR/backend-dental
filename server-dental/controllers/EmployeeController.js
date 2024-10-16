@@ -32,9 +32,21 @@ const validateAddress = (address) => {
     return regex.test(address);
 };
 
-// Hàm để kiểm tra workingTime
 const validateWorkingTime = (workingTime) => {
-    return workingTime && Array.isArray(workingTime) && workingTime.length > 0;
+    if (!workingTime || !Array.isArray(workingTime)) {
+        return false; // Kiểm tra workingTime phải là mảng
+    }
+
+    // Kiểm tra từng đối tượng trong workingTime
+    return workingTime.every(dayObj => {
+        // Kiểm tra ngày hợp lệ và timeSlots hợp lệ
+        const validDay = typeof dayObj.day === 'string' && dayObj.day.length > 0;
+        const validTimeSlots = Array.isArray(dayObj.timeSlots) && dayObj.timeSlots.every(slot => {
+            return /^[0-9]{1,2}:[0-9]{2} - [0-9]{1,2}:[0-9]{2}$/.test(slot);
+        });
+
+        return validDay && validTimeSlots;
+    });
 };
 
 // Hàm để kiểm tra specialization
@@ -51,15 +63,31 @@ const validateBirthDate = (birthDate) => {
 const createEmployee = async (req, res) => {
     try {
         // Lấy thông tin từ request body
-        const { employeeName, gender, employeePhone, employeeEmail, citizenID, address, employeeSpecialization, birthDate, workingTime, position, createBy } = req.body;
+        const {
+            employeeName,
+            gender,
+            employeePhone,
+            employeeEmail,
+            citizenID,
+            address,
+            employeeSpecialization,
+            birthDate,
+            position,
+            createBy,
+            workingTime,
+        } = req.body;
 
         let urlAvatar = "";
-        // console.log(req.body);
+
+        const parsedWorkingTime = JSON.parse(workingTime);
+        const parsedSpecialization = JSON.parse(employeeSpecialization);
 
 
         // Validate thông tin đầu vào
         if (!employeeName || !validateName(employeeName)) {
-            return res.status(400).json({ message: "Tên sai định dạng. Không được chứa kí tự đặc biệt hoặc số" });
+            return res.status(400).json({
+                message: "Tên không được bỏ trống. Không được chứa kí tự đặc biệt hoặc số",
+            });
         }
 
         if (!gender) {
@@ -67,7 +95,10 @@ const createEmployee = async (req, res) => {
         }
 
         if (!employeePhone || !validatePhone(employeePhone)) {
-            return res.status(400).json({ message: "Số điện thoại bắt đầu bằng 0, có 10 số, không chứa chữ cái và kí tự đặc biệt" });
+            return res.status(400).json({
+                message:
+                    "Số điện thoại bắt đầu bằng 0, có 10 số, không chứa chữ cái và kí tự đặc biệt",
+            });
         } else if (await Employee.findOne({ employeePhone })) {
             return res.status(400).json({ message: "Số điện thoại đã tồn tại" });
         }
@@ -79,7 +110,9 @@ const createEmployee = async (req, res) => {
         }
 
         if (!citizenID || !validateCitizenID(citizenID)) {
-            return res.status(400).json({ message: "Số căn cước phải đủ 12 số, không chứa chữ cái và kí tự đặc biệt" });
+            return res.status(400).json({
+                message: "Số căn cước phải đủ 12 số, không chứa chữ cái và kí tự đặc biệt",
+            });
         } else if (await Employee.findOne({ citizenID })) {
             return res.status(400).json({ message: "Số căn cước đã tồn tại" });
         }
@@ -88,11 +121,11 @@ const createEmployee = async (req, res) => {
             return res.status(400).json({ message: "Địa chỉ không được để trống" });
         }
 
-        if (!validateWorkingTime(workingTime)) {
-            return res.status(400).json({ message: "Thời gian làm việc không được để trống" });
+        if (!validateWorkingTime(parsedWorkingTime)) {
+            return res.status(400).json({ message: "Thời gian làm việc không hợp lệ" });
         }
 
-        if (!validateSpecialization(employeeSpecialization)) {
+        if (!validateSpecialization(parsedSpecialization)) {
             return res.status(400).json({ message: "Bằng cấp không được để trống" });
         }
 
@@ -107,12 +140,10 @@ const createEmployee = async (req, res) => {
             urlAvatar = req.file.path;
         }
 
-        // const createrID = await Account.findOne({ username: createBy });
-
-        // Tạo doctorID bằng cách gọi hàm generateID
+        // Tạo employeeID bằng cách gọi hàm generateID
         const employeeID = await generateID(birthDate, employeePhone, citizenID);
 
-        // Tạo một bác sĩ mới
+        // Tạo một nhân viên mới
         const newEmployee = new Employee({
             employeeID,
             employeeName,
@@ -122,8 +153,8 @@ const createEmployee = async (req, res) => {
             employeeEmail,
             citizenID,
             address,
-            workingTime,
-            employeeSpecialization,
+            workingTime: parsedWorkingTime,
+            employeeSpecialization: parsedSpecialization,
             urlAvatar,
             position,
             createBy,
@@ -138,9 +169,10 @@ const createEmployee = async (req, res) => {
             employee: newEmployee,
         });
     } catch (error) {
-        console.error('Error in create Employee', JSON.stringify(error, null, 2));
+        console.error("Error in create Employee", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 module.exports = { createEmployee };

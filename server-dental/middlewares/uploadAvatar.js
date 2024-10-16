@@ -14,6 +14,7 @@ const storage = new CloudinaryStorage({
 const uploadAvatarMiddleware = multer({
     storage: storage,
     limits: { fileSize: 1024 * 1024 * 10 }, // 10MB
+
 });
 
 // Middleware để xử lý lỗi khi file vượt quá kích thước

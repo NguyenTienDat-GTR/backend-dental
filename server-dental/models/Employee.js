@@ -44,29 +44,30 @@ const Employee = new mongoose.Schema({
         type: String,
         required: true,
     },
-    workingTime: [
-        {
-            day: {
-                type: String,
-                required: true,
-                enum: [
-                    "Monday",
-                    "Tuesday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday",
-                ],
-            },
-            timeSlots: [
-                {
+    workingTime:
+        [
+            {
+                day: {
                     type: String,
                     required: true,
+                    enum: [
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday",
+                    ],
                 },
-            ],
-        },
-    ],
+                timeSlots: [
+                    {
+                        type: String,
+                        required: true,
+                    },
+                ],
+            },
+        ],
     employeeSpecialization: [
         {
             type: String,
