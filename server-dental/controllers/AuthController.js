@@ -78,11 +78,11 @@ const Login = async (req, res) => {
         }
 
         // Tạo token
-        const token = generateToken(existAccount.username, existAccount.role, res);
-
         const user = await getUserInfo(existAccount.username);
+        const token = generateToken( user,res);
 
-        return res.status(200).json({ message: "Đăng nhập thành công", token, user });
+
+        return res.status(200).json({ message: "Đăng nhập thành công", token});
     } catch (error) {
         console.error(error.message);
         res.status(500).json({ message: "Internal server error" });

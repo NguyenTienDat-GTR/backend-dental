@@ -1,9 +1,9 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 
-const generateToken = (accountID, role, res) => {
+const generateToken = (user, res) => {
     // Thêm role vào token payload
-    const token = jwt.sign({ accountID, role }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ user }, process.env.JWT_SECRET, {
         expiresIn: "1d", // expires in 1 days
     });
 
