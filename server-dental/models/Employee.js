@@ -97,6 +97,17 @@ const Employee = new mongoose.Schema({
         required: true,
         default: getVietnamTimeString, // Sử dụng chuỗi thời gian Việt Nam
     },
+    editBy: [
+        {
+            by: {
+                type: String,
+            },
+            at: {
+                type: String,
+                default: getVietnamTimeString,
+            }
+        }
+    ]
 });
 
 module.exports = mongoose.model("Employee", Employee);
