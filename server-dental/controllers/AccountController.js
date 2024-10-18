@@ -48,4 +48,54 @@ const createAccount = async (req, res) => {
     }
 };
 
-module.exports = { createAccount };
+const getAllAccount = async (req, res) => {
+    try {
+        // Lấy danh sách tất cả các tài khoản, loại bỏ trường password
+        const accounts = await Account.find().select("-password");
+
+        // Mảng mới để lưu trữ tài khoản cùng thông tin nhân viên
+        const accountsWithEmployee = [];
+
+        // Lặp qua từng tài khoản để tìm kiếm thông tin nhân viên
+        for (const account of accounts) {
+            const employee = await Employee.findOne({ employeeID: account.username });
+
+            // Nếu tìm thấy employee, thêm thông tin employeeID và employeeName
+            if (employee) {
+                accountsWithEmployee.push({
+                    ...account._doc,  // Sử dụng _doc để lấy dữ liệu thô từ Mongoose document
+                    employeeID: employee.employeeID,
+                    employeeName: employee.employeeName,
+                });
+            } else {
+                // Nếu không tìm thấy employee, vẫn đẩy account vào nhưng để employeeID và employeeName là null
+                accountsWithEmployee.push({
+                    ...account._doc,
+                    employeeID: null,
+                    employeeName: null,
+                });
+            }
+        }
+
+        // Trả về danh sách tài khoản với thông tin nhân viên
+        return res.status(200).json(accountsWithEmployee);
+    } catch (error) {
+        console.error(error.message);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
+
+// lấy danh sách employee chưa có account
+const getEmployeeWithoutAccount = async (req, res) => {
+    try {
+        const employees = await Employee.find({ employeeID: { $nin: await Account.distinct("username") } });
+        return res.status(200).json(employees);
+    } catch (error) {
+        console.error(error.message);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+module.exports = { createAccount, getAllAccount, getEmployeeWithoutAccount };
