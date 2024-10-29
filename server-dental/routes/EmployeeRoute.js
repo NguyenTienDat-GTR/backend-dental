@@ -15,7 +15,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 router.post(
     "/create",
     authMiddleware(["admin"]),
-    uploadAvatarMiddleware.single("employeeAvatar"),
+    uploadAvatarMiddleware("Avatar").single("employeeAvatar"),
     handleFileSizeError,
     createEmployee
 );
@@ -29,7 +29,7 @@ router.get(
 router.put(
     "/update/:id",
     authMiddleware(["admin"]),
-    uploadAvatarMiddleware.single("employeeAvatar"),
+    uploadAvatarMiddleware("Avatar").single("employeeAvatar"),
     handleFileSizeError,
     updateEmployee
 );

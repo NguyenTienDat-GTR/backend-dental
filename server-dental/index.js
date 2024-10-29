@@ -7,12 +7,14 @@ const IP = process.env.IP_SERVER;
 
 const app = express();
 const http = require("http").createServer(app);
-const cookieParser = require('cookie-parser');
+const cookieParser = require("cookie-parser");
 
-const { connectToMongoDB } = require("./database/connectToMongoDB")
+const { connectToMongoDB } = require("./database/connectToMongoDB");
 const employeeRoute = require("./routes/EmployeeRoute");
 const accountRoute = require("./routes/AccountRoute");
 const authRoute = require("./routes/AuthRoute");
+const serviceTypeRoute = require("./routes/ServiceTypeRoute");
+const serviceRoute = require("./routes/ServiceRoute");
 
 // Cấu hình CORS
 const corsOptions = {
@@ -37,6 +39,8 @@ app.listen(port, () => {
     console.log(`Server is running on ${IP}${port}`);
 });
 
-app.use('/employee', employeeRoute);
-app.use('/account', accountRoute);
-app.use('/auth', authRoute);
+app.use("/employee", employeeRoute);
+app.use("/account", accountRoute);
+app.use("/auth", authRoute);
+app.use("/service-type", serviceTypeRoute);
+app.use("/service", serviceRoute);

@@ -38,10 +38,10 @@ const createAccount = async (req, res) => {
         // Lưu tài khoản vào database
         await newAccount.save();
 
-        // Gửi tin nhắn chứa thông tin tài khoản đến số điện thoại của bác sĩ
+        // Gửi tin nhắn chứa thông tin tài khoản đến email của bác sĩ
         await sendAccountCreationEmail(employee.employeeEmail, employee.employeeName, username, password);
 
-        return res.status(201).json({ message: "Account created successfully" });
+        return res.status(201).json({ message: "Tạo tài khoản thành công" });
     } catch (error) {
         console.error(error.message);
         res.status(500).json({ message: "Internal server error" });
