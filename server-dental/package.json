@@ -32,6 +32,7 @@
     "mysql2": "^3.11.3",
     "nodemailer": "^6.9.15",
     "sequelize": "^6.37.4",
+    "socket.io": "^4.8.1",
     "stringee": "^2.9.3",
     "twilio": "^5.3.3"
   }

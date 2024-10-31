@@ -6,11 +6,7 @@ const {
     createServiceType,
 } = require("../controllers/ServiceTypeController");
 
-router.get(
-    "/all",
-    authMiddleware(["admin", "doctor", "employee"]),
-    getAllServiceTypes
-);
+router.get("/all", getAllServiceTypes);
 
 router.post("/create", authMiddleware(["admin"]), createServiceType);
 

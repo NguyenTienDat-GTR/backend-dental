@@ -4,9 +4,8 @@ const bodyParser = require("body-parser");
 require("dotenv").config();
 const port = process.env.PORT || 3000;
 const IP = process.env.IP_SERVER;
-
+const { io, server } = require('./socket');
 const app = express();
-const http = require("http").createServer(app);
 const cookieParser = require("cookie-parser");
 
 const { connectToMongoDB } = require("./database/connectToMongoDB");
@@ -15,6 +14,7 @@ const accountRoute = require("./routes/AccountRoute");
 const authRoute = require("./routes/AuthRoute");
 const serviceTypeRoute = require("./routes/ServiceTypeRoute");
 const serviceRoute = require("./routes/ServiceRoute");
+const appointmentRequestRoute = require("./routes/AppointmentRequestRoute");
 
 // Cấu hình CORS
 const corsOptions = {
@@ -44,3 +44,4 @@ app.use("/account", accountRoute);
 app.use("/auth", authRoute);
 app.use("/service-type", serviceTypeRoute);
 app.use("/service", serviceRoute);
+app.use("/appointment-request", appointmentRequestRoute);

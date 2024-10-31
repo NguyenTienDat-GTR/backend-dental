@@ -3,7 +3,7 @@ const ServiceType = require("../models/ServiceType");
 
 const createService = async (req, res) => {
     try {
-        const { name, price, description, serviceTypeName, discount, duration } = req.body;
+        const { name, price, description, serviceTypeName, discount, duration, priceRange, unit } = req.body;
 
         if (!name || !price || !description || !serviceTypeName || !discount || !duration) {
             return res.status(400).json({ message: "Cần điền đầy đủ thông tin" });
@@ -37,7 +37,7 @@ const createService = async (req, res) => {
         }
 
         // Tạo dịch vụ mới
-        const service = new Service({ name, price, description, imageUrls, discount, duration });
+        const service = new Service({ name, price, description, imageUrls, discount, duration, priceRange, unit });
         await service.save();
 
         // Tìm ServiceType theo tên và cập nhật serviceList

@@ -10,6 +10,10 @@ const Service = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    priceRange: {
+        type: String,
+        require: true
+    },
     description: {
         type: String,
         required: true,
@@ -27,5 +31,10 @@ const Service = new mongoose.Schema({
         type: String,
         required: true,
     }],
+    unit: {
+        type: String,
+        enum: ["tooth", "jaw", "treatment", "set", "session",],
+        default: "session"
+    }
 });
 module.exports = mongoose.model("Service", Service);
