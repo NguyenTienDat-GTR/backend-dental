@@ -15,6 +15,7 @@ const authRoute = require("./routes/AuthRoute");
 const serviceTypeRoute = require("./routes/ServiceTypeRoute");
 const serviceRoute = require("./routes/ServiceRoute");
 const appointmentRequestRoute = require("./routes/AppointmentRequestRoute");
+const articleRoute = require("./routes/ArticleRoute")
 
 // Cấu hình CORS
 const corsOptions = {
@@ -45,3 +46,4 @@ app.use("/auth", authRoute);
 app.use("/service-type", serviceTypeRoute);
 app.use("/service", serviceRoute);
 app.use("/appointment-request", appointmentRequestRoute);
+app.use("/article", articleRoute)

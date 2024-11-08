@@ -35,6 +35,10 @@ const Service = new mongoose.Schema({
         type: String,
         enum: ["tooth", "jaw", "treatment", "set", "session",],
         default: "session"
+    },
+    blog:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Article",
     }
 });
 module.exports = mongoose.model("Service", Service);
