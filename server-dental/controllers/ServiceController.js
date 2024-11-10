@@ -33,9 +33,9 @@ const getImageUrls = (files, res) => {
 
 const createService = async (req, res) => {
     try {
-        const { name, price, description, serviceTypeName, discount, duration, priceRange, unit} = req.body;
+        const { name, price, description, serviceTypeName, discount, duration, priceRange, unit } = req.body;
 
-        let {blogId} = req.body;
+        let { blogId } = req.body;
 
         // Validate service data
         validateServiceData({ name, price, description, serviceTypeName, discount, duration, priceRange, unit, res });
@@ -102,4 +102,15 @@ const getServiceById = async (req, res) => {
     }
 }
 
-module.exports = { createService, getServiceById };
+const getAllServices = async (req, res) => {
+    try {
+        const services = await Service.find().populate("blog");
+
+        return res.status(200).json({ services });
+    } catch (error) {
+        console.error("Error in get all services", error);
+        return res.status(400).json({ message: error.message });
+    }
+}
+
+module.exports = { createService, getServiceById, getAllServices };
