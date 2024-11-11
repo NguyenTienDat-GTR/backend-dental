@@ -28,8 +28,8 @@ const AppointmentRequest = new mongoose.Schema({
         required: true,
     },
     service: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Service",
+        type: String,
+        require: true
     },
     note: {
         type: String,
@@ -55,7 +55,7 @@ const AppointmentRequest = new mongoose.Schema({
     },
     genderDoctor: {
         type: String,
-        enum: ["male", "female"],
+        enum: ["male", "female", "all"],
     },
     createBy: {
         type: String,
