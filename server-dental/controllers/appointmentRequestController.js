@@ -384,16 +384,16 @@ const responseRequest = async (req, res) => {
 
 const autoRejectExpiredRequests = async () => {
     try {
-        // Lấy danh sách các yêu cầu có status là 'pending'
+        // Lấy danh sách các yêu cầu có trạng thái 'pending'
         const pendingRequests = await AppointmentRequest.find({ status: "pending" });
 
         // Lặp qua từng yêu cầu để kiểm tra thời gian
         for (const request of pendingRequests) {
-            const createTime = moment(`${request.createAt}`, "DD/MM/YYYY HH:mm");
+            const createTime = moment(request.createAt, "DD/MM/YYYY, h:mm:ss A");
             const now = moment();
 
             // Kiểm tra nếu thời gian hiện tại lớn hơn 15 phút so với thời gian tạo yêu cầu
-            if (now.isAfter(createTime.add(15, 'minutes'))) {
+            if (now.isAfter(createTime.clone().add(15, 'minutes'))) {
                 request.status = "rejected";
                 request.reasonReject = "Yêu cầu tự động bị từ chối do quá thời gian phản hồi";
                 request.rejectBy = "Hệ thống";
@@ -424,6 +424,7 @@ const autoRejectExpiredRequests = async () => {
 
 // Chạy kiểm tra định kỳ mỗi 60 giây
 setInterval(autoRejectExpiredRequests, 60 * 1000);
+
 
 
 

@@ -24,7 +24,6 @@ const Service = new mongoose.Schema({
     },
     discount: {
         type: Number,
-        required: true,
         default: 0,
     },
     imageUrls: [{
@@ -36,7 +35,7 @@ const Service = new mongoose.Schema({
         enum: ["tooth", "jaw", "treatment", "set", "session",],
         default: "session"
     },
-    blog:{
+    blog: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Article",
     }
