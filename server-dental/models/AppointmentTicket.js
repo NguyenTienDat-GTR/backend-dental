@@ -43,6 +43,13 @@ const appointmentTicketSchema = new mongoose.Schema({
         enum: ["waiting", "cancelled", "done"],
         default: "waiting",
     },
+    cancelledBy: {
+        type: String,
+        default: null,
+    },
+    reasonCancelled: {
+        type: String,
+    },
     isCustomerArrived: {
         type: Boolean,
         default: false, // Mặc định là khách hàng chưa đến
@@ -63,10 +70,12 @@ const appointmentTicketSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
-    concern: {
-        type: String,
-        default: "",
-    },
+    concern: [
+        {
+            type: String,
+            default: ""
+        }
+    ],
 });
 
 // Tạo model Phiếu Hẹn

@@ -67,7 +67,7 @@ const sendCreateAppointmentRequest = async (email, name, date, time, service, no
     });
 }
 
-const sendResponsAppointmentRequest = async (email, name, status, date, time, by, reason) => {
+const sendResponsAppointmentRequest = async (email, name, status, date, time, by, reason,doctor) => {
     const transporter = createTransporter();
     let message = {};
     if (status === "accepted") {
@@ -76,7 +76,7 @@ const sendResponsAppointmentRequest = async (email, name, status, date, time, by
             from: USER_MAIL,
             to: email,
             subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
-            text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được xử lí.\nTrạng thái yêu cầu: ${accept}\n\nBạn vui lòng đến khám sớm 30 phút vào ngày ${date} lúc ${time}.\n\nĐược chấp nhận bởi: ${by}\n\nXin cảm ơn!`,
+            text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được xử lí.\nTrạng thái yêu cầu: ${accept}\n\nBác sĩ:${doctor}\n\nBạn vui lòng đến khám sớm 30 phút vào ngày ${date} lúc ${time}.\n\nĐược chấp nhận bởi: ${by}\n\nXin cảm ơn!`,
         };
     } else if (status === "rejected") {
         const reject = "Đã bị từ chối";
@@ -96,9 +96,32 @@ const sendResponsAppointmentRequest = async (email, name, status, date, time, by
     });
 };
 
+const sendCancellAppointmentTicket = async (email, name, status, date, time, service, by, reason) => {
+    const transporter = createTransporter();
+    let message = {};
+    if (status === "rejected") {
+        const reject = "Đã bị từ chối";
+        message = {
+            from: USER_MAIL,
+            to: email,
+            subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
+            text: `Xin chào ${name},\n\nPhiếu hẹn của bạn có thông tin như sau:\n\n Tên khách hàng: ${name}\n\n Ngày hẹn: ${date}\n\n Giờ hẹn: ${time}\n\n Dịch vụ: ${service}\n\nHiện tại đã quá giờ hẹn nhưng chúng tôi chưa thấy bạn đến phòng khám.\n\nChúng tôi xin thông báo phiếu hẹn của bạn đã bị hủy.\n\nLý do hủy: ${reason}\n\nHủy bởi: ${by}\n\nXin cảm ơn!`,
+        }
+    }
+
+    transporter.sendMail(message, (error, info) => {
+        if (error) {
+            return console.log("Lỗi khi gửi email:", error);
+        }
+        console.log("Email đã được gửi:", info.response);
+    });
+
+}
+
 module.exports = {
     sendAccountCreationEmail,
     sendPasswordResetEmail,
     sendResponsAppointmentRequest,
-    sendCreateAppointmentRequest
+    sendCreateAppointmentRequest,
+    sendCancellAppointmentTicket
 };

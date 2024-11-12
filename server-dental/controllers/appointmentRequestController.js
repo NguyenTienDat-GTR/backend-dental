@@ -359,7 +359,7 @@ const responseRequest = async (req, res) => {
             })
             await request.save();
             await ticket.save();
-            await sendResponsAppointmentRequest(request.customerEmail, request.customerName, status, request.appointmentDate, request.appointmentTime, request.acceptBy, null);
+            await sendResponsAppointmentRequest(request.customerEmail, request.customerName, status, request.appointmentDate, request.appointmentTime, request.acceptBy, null, doctor.employeeName);
             io.emit('response');
             io.emit('createTicket', ticket);
             return res.status(200).json({ message: "Xử lý yêu cầu thành công! Đã tạo phiếu hẹn!", request });
@@ -371,7 +371,7 @@ const responseRequest = async (req, res) => {
             request.rejectBy = rejectBy;
 
             await request.save();
-            await sendResponsAppointmentRequest(request.customerEmail, request.customerName, status, request.appointmentDate, request.appointmentTime, request.rejectBy, request.reasonReject);
+            await sendResponsAppointmentRequest(request.customerEmail, request.customerName, status, request.appointmentDate, request.appointmentTime, request.rejectBy, request.reasonReject, null);
             io.emit('response');
             return res.status(200).json({ message: "Xử lý yêu cầu thành công! Đã từ chối!", request })
         }
@@ -389,13 +389,13 @@ const autoRejectExpiredRequests = async () => {
 
         // Lặp qua từng yêu cầu để kiểm tra thời gian
         for (const request of pendingRequests) {
-            const requestDateTime = moment(`${request.appointmentDate} ${request.appointmentTime}`, "DD/MM/YYYY HH:mm");
+            const createTime = moment(`${request.createAt}`, "DD/MM/YYYY HH:mm");
             const now = moment();
 
-            // Kiểm tra nếu thời gian hiện tại lớn hơn 15 phút so với thời gian trong yêu cầu
-            if (now.isAfter(requestDateTime.add(15, 'minutes'))) {
+            // Kiểm tra nếu thời gian hiện tại lớn hơn 15 phút so với thời gian tạo yêu cầu
+            if (now.isAfter(createTime.add(15, 'minutes'))) {
                 request.status = "rejected";
-                request.reasonReject = "Yêu cầu tự động từ chối do quá thời gian hẹn phản hồi";
+                request.reasonReject = "Yêu cầu tự động bị từ chối do quá thời gian phản hồi";
                 request.rejectBy = "Hệ thống";
 
                 // Lưu lại trạng thái từ chối cho yêu cầu
@@ -414,7 +414,7 @@ const autoRejectExpiredRequests = async () => {
 
                 // Phát sự kiện thông báo cho các client
                 io.emit('response', request);
-                console.log(`Yêu cầu ${request._id} đã bị từ chối do quá thời gian hẹn.`);
+                console.log(`Yêu cầu ${request._id} đã bị từ chối do quá thời gian phản hồi.`);
             }
         }
     } catch (error) {
@@ -422,8 +422,8 @@ const autoRejectExpiredRequests = async () => {
     }
 };
 
-// Chạy kiểm tra định kỳ mỗi 30 giây
-setInterval(autoRejectExpiredRequests, 30 * 1000);
+// Chạy kiểm tra định kỳ mỗi 60 giây
+setInterval(autoRejectExpiredRequests, 60 * 1000);
 
 
 
