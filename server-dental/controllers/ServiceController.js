@@ -190,7 +190,7 @@ const deleteService = async (req, res) => {
 
         // Xóa bài viết nếu có liên kết thông qua blogId
         if (service.blog) {
-            const blog = await Blog.findById(service.blog);
+            const blog = await blog.findById(service.blog);
             if (blog) {
                 await blog.deleteOne(); // Xóa bài viết liên kết
             } else {
