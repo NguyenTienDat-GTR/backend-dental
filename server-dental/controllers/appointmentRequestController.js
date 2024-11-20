@@ -121,7 +121,6 @@ const getAllRequest = async (req, res) => {
 }
 
 // Hàm kiểm tra lịch bác sĩ
-// Hàm kiểm tra lịch bác sĩ
 const checkDoctorAvailability = async (appointmentRequest, res) => {
     if (!appointmentRequest.appointmentDate || typeof appointmentRequest.appointmentDate !== 'string') {
         throw new Error('appointmentDate is missing or not a string');
@@ -423,7 +422,7 @@ const autoRejectExpiredRequests = async () => {
 };
 
 // Chạy kiểm tra định kỳ mỗi 60 giây
-setInterval(autoRejectExpiredRequests, 60 * 1000);
+// setInterval(autoRejectExpiredRequests, 60 * 1000);
 
 
 

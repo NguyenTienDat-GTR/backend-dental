@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const getVietnamTimeString = () => {
     const now = new Date();
-    return now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
+    return now.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"});
 };
 
 //  Phiếu Hẹn
@@ -64,7 +64,7 @@ const appointmentTicketSchema = new mongoose.Schema({
     },
     createBy: {
         type: String,
-        required: true,
+        default: "customer",
     },
     note: {
         type: String,
@@ -77,6 +77,9 @@ const appointmentTicketSchema = new mongoose.Schema({
         }
     ],
 });
+
+// Đặt unique index
+appointmentTicketSchema.index({doctorId: 1, requestedDate: 1, requestedTime: 1}, {unique: true});
 
 // Tạo model Phiếu Hẹn
 const AppointmentTicket = mongoose.model(

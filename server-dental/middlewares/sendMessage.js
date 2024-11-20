@@ -67,26 +67,17 @@ const sendCreateAppointmentRequest = async (email, name, date, time, service, no
     });
 }
 
-const sendResponsAppointmentRequest = async (email, name, status, date, time, by, reason,doctor) => {
+const sendResponseAppointmentRequest = async (email, name, date, time, doctor, service) => {
     const transporter = createTransporter();
     let message = {};
-    if (status === "accepted") {
-        const accept = "Đã được chấp nhận";
-        message = {
-            from: USER_MAIL,
-            to: email,
-            subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
-            text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được xử lí.\nTrạng thái yêu cầu: ${accept}\n\nBác sĩ:${doctor}\n\nBạn vui lòng đến khám sớm 30 phút vào ngày ${date} lúc ${time}.\n\nĐược chấp nhận bởi: ${by}\n\nXin cảm ơn!`,
-        };
-    } else if (status === "rejected") {
-        const reject = "Đã bị từ chối";
-        message = {
-            from: USER_MAIL,
-            to: email,
-            subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
-            text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được xử lí.\nTrạng thái yêu cầu: ${reject}\n\nLý do từ chối: ${reason}\n\nTừ chối bởi: ${by}\n\nXin cảm ơn!`,
-        }
-    }
+
+    message = {
+        from: USER_MAIL,
+        to: email,
+        subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
+        text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được tạo thành công.\n\nBác sĩ yêu cầu: ${doctor}\n\nDịch vụ yêu cầu: ${service}\n\nBạn vui lòng đến phòng khám sớm hơn 30 phút vào ngày ${date} lúc ${time} để xác nhận.\n\nXin cảm ơn!`,
+    };
+
 
     transporter.sendMail(message, (error, info) => {
         if (error) {
@@ -121,7 +112,7 @@ const sendCancellAppointmentTicket = async (email, name, status, date, time, ser
 module.exports = {
     sendAccountCreationEmail,
     sendPasswordResetEmail,
-    sendResponsAppointmentRequest,
+    sendResponseAppointmentRequest,
     sendCreateAppointmentRequest,
     sendCancellAppointmentTicket
 };
