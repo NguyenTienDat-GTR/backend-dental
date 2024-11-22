@@ -56,7 +56,7 @@ const sendCreateAppointmentRequest = async (email, name, date, time, service, no
         from: USER_MAIL,
         to: email,
         subject: "Yêu cầu đặt lịch khám - Nha Khoa HBT",
-        text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được gửi thành công.\n\nDịch vụ: ${service}\nNgày: ${date}\nGiờ: ${time}\nGhi chú: ${note}\n\nNhững vấn đề quan tâm: ${concern}\n\nChúng tôi sẽ phản hồi cho bạn trong vòng 15 phút \n\nNếu quá 15 phút yêu cầu sẽ bị từ chối bởi hệ thống\n\nXin cảm ơn!`,
+        text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được gửi thành công.\n\nDịch vụ: ${service}\nNgày: ${date}\nGiờ: ${time}\nGhi chú: ${note}\n\nChúng tôi sẽ phản hồi cho bạn trong vòng 15 phút \n\nNếu quá 15 phút yêu cầu sẽ bị từ chối bởi hệ thống\n\nXin cảm ơn!`,
     };
 
     transporter.sendMail(message, (error, info) => {
@@ -87,16 +87,22 @@ const sendResponseAppointmentRequest = async (email, name, date, time, doctor, s
     });
 };
 
-const sendCancellAppointmentTicket = async (email, name, status, date, time, service, by, reason) => {
+const sendCancellAppointmentTicket = async (email, name, status, date, time, service, by, reason,cancellAt) => {
     const transporter = createTransporter();
     let message = {};
-    if (status === "rejected") {
-        const reject = "Đã bị từ chối";
+    if (by === "Hệ thống") {
         message = {
             from: USER_MAIL,
             to: email,
-            subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
-            text: `Xin chào ${name},\n\nPhiếu hẹn của bạn có thông tin như sau:\n\n Tên khách hàng: ${name}\n\n Ngày hẹn: ${date}\n\n Giờ hẹn: ${time}\n\n Dịch vụ: ${service}\n\nHiện tại đã quá giờ hẹn nhưng chúng tôi chưa thấy bạn đến phòng khám.\n\nChúng tôi xin thông báo phiếu hẹn của bạn đã bị hủy.\n\nLý do hủy: ${reason}\n\nHủy bởi: ${by}\n\nXin cảm ơn!`,
+            subject: "Phản hồi lịch hen khám - Nha Khoa HBT",
+            text: `Xin chào ${name},\n\nPhiếu hẹn của bạn có thông tin như sau:\n\n Tên khách hàng: ${name}\n\n Ngày hẹn: ${date}\n\n Giờ hẹn: ${time}\n\n Dịch vụ: ${service}\n\nHiện tại đã quá giờ hẹn nhưng chúng tôi chưa thấy bạn đến phòng khám.\n\nChúng tôi xin thông báo phiếu hẹn của bạn đã bị hủy lúc ${cancellAt}.\n\nLý do hủy: ${reason}\n\nHủy bởi: ${by}\n\nXin cảm ơn!`,
+        }
+    } else if (by !== "Hệ thống") {
+        message = {
+            from: USER_MAIL,
+            to: email,
+            subject: "Phản hồi lịch hẹn khám - Nha Khoa HBT",
+            text: `Xin chào ${name},\n\nPhiếu hẹn của bạn có thông tin như sau:\n\n Tên khách hàng: ${name}\n\n Ngày hẹn: ${date}\n\n Giờ hẹn: ${time}\n\n Dịch vụ: ${service}\n\nĐã bị hủy lúc ${cancellAt}.\n\nLý do hủy: ${reason}\n\nHủy bởi: ${by}\n\nXin cảm ơn!`,
         }
     }
 

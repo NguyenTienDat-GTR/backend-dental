@@ -2,8 +2,18 @@ const mongoose = require("mongoose");
 
 const getVietnamTimeString = () => {
     const now = new Date();
-    return now.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"});
+    const options = {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+    return now.toLocaleString("en-GB", {timeZone: "Asia/Ho_Chi_Minh", ...options}).replace(',', '');
 };
+
 
 //  Phiếu Hẹn
 const appointmentTicketSchema = new mongoose.Schema({
@@ -14,9 +24,15 @@ const appointmentTicketSchema = new mongoose.Schema({
     customerPhone: {
         type: String,
         required: true,
+        unique: true,
     },
     customerEmail: {
         type: String,
+        unique: true,
+    },
+    customerGender: {
+        type: String,
+        enum: ["male", "female"],
         required: true,
     },
     requestedService: {
@@ -43,6 +59,14 @@ const appointmentTicketSchema = new mongoose.Schema({
         enum: ["waiting", "cancelled", "done"],
         default: "waiting",
     },
+    doneBy: {
+        type: String,
+        default: null,
+    },
+    doneAt: {
+        type: String,
+        default: null,
+    },
     cancelledBy: {
         type: String,
         default: null,
@@ -50,11 +74,19 @@ const appointmentTicketSchema = new mongoose.Schema({
     reasonCancelled: {
         type: String,
     },
+    cancelledAt: {
+        type: String,
+        default: null,
+    },
     isCustomerArrived: {
         type: Boolean,
         default: false, // Mặc định là khách hàng chưa đến
     },
     confirmedBy: {
+        type: String,
+        default: null,
+    },
+    arrivedAt: {
         type: String,
         default: null,
     },

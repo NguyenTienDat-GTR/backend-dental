@@ -1,10 +1,26 @@
 const AppointmentTicket = require('../models/AppointmentTicket');
 const Employee = require('../models/Employee');
 const Service = require('../models/Service');
+const Customer = require('../models/Customer');
 const {sendCancellAppointmentTicket} = require('../middlewares/sendMessage')
 const moment = require('moment');
 const {io} = require("../socket");
 const {sendResponseAppointmentRequest} = require("../middlewares/sendMessage");
+
+const getVietnamTimeString = () => {
+    const now = new Date();
+    const options = {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    };
+    return now.toLocaleString("en-GB", {timeZone: "Asia/Ho_Chi_Minh", ...options}).replace(',', '');
+};
+
 
 // Hàm để kiểm tra định dạng email
 const validateEmail = (email) => {
@@ -74,88 +90,111 @@ const createAppointmentTicket = async (req, res) => {
         requestedTime,
         service,
         note,
-        createBy
+        createBy,
+        gender
     } = req.body;
 
-    const session = await AppointmentTicket.startSession(); // Khởi tạo session MongoDB
+    const session = await AppointmentTicket.startSession();
     session.startTransaction();
+    let retries = 3;
 
-    try {
-        // Kiểm tra thông tin nhập vào
-        if (!doctorId || !customerName || !customerPhone || !requestedDate || !requestedTime || !service) {
-            return res.status(400).json({message: "Cần điền đầy đủ thông tin"});
-        }
+    while (retries > 0) {
+        try {
+            // Kiểm tra thông tin nhập vào
+            if (!doctorId || !customerName || !customerPhone || !requestedDate || !requestedTime || !service || !gender) {
+                return res.status(400).json({message: "Cần điền đầy đủ thông tin"});
+            }
 
-        const doctor = await Employee.findOne({employeeID: doctorId}).session(session);
-        if (!doctor) {
-            return res.status(404).json({message: "Không tìm thấy bác sĩ"});
-        }
+            const doctor = await Employee.findOne({employeeID: doctorId}).session(session);
+            if (!doctor) {
+                return res.status(404).json({message: "Không tìm thấy bác sĩ"});
+            }
 
-        const serviceInfo = await Service.findOne({name: service}).session(session);
-        if (!serviceInfo) {
-            return res.status(404).json({message: "Không tìm thấy dịch vụ"});
-        }
+            const serviceInfo = await Service.findOne({name: service}).session(session);
+            if (!serviceInfo) {
+                return res.status(404).json({message: "Không tìm thấy dịch vụ"});
+            }
 
-        if (!validateName(customerName)) {
-            return res.status(400).json({message: "Tên không hợp lệ"});
-        }
+            if (!validateName(customerName)) {
+                return res.status(400).json({message: "Tên không hợp lệ"});
+            }
 
-        if (!validatePhone(customerPhone)) {
-            return res.status(400).json({message: "Số điện thoại không hợp lệ"});
-        }
+            if (!validatePhone(customerPhone)) {
+                return res.status(400).json({message: "Số điện thoại không hợp lệ"});
+            }
 
-        if (customerEmail) {
-            if (!validateEmail(customerEmail)) {
-                return res.status(400).json({message: "Email không hợp lệ"});
+            if (customerEmail) {
+                if (!validateEmail(customerEmail)) {
+                    return res.status(400).json({message: "Email không hợp lệ"});
+                }
+            }
+
+            checkValidDateTime(requestedDate, requestedTime, res);
+
+            // Kiểm tra xem có lịch hẹn trùng không
+            const isDuplicate = await checkAvailableAppointment(doctorId, requestedDate, requestedTime);
+            if (isDuplicate) {
+                return res.status(409).json({message: "Lịch hẹn với thời gian và bác sĩ này đã được đặt trước đó! Vui lòng chọn thời gian hoặc bác sĩ khác"});
+            }
+
+            const endTime = moment(`${requestedTime}`, "HH:mm").add(serviceInfo.duration, "minutes").format("HH:mm");
+
+            const ticket = new AppointmentTicket({
+                customerName,
+                customerPhone,
+                customerEmail,
+                requestedDate,
+                requestedTime,
+                requestedService: service,
+                doctorId,
+                endTime: endTime.toString(),
+                createBy: createBy ? createBy : "customer",
+                note,
+                customerGender: gender,
+            });
+
+            const newTicket = await ticket.save({session});
+
+            if (newTicket) {
+                const newCustomer = new Customer({
+                    name: customerName,
+                    phone: customerPhone,
+                    email: customerEmail ? customerEmail : "",
+                    gender: gender
+                });
+
+                await newCustomer.save({session});
+
+                if (customerEmail)
+                    await sendResponseAppointmentRequest(customerEmail, customerName, requestedDate, requestedTime, doctor.employeeName, service);
+            }
+
+            // Commit transaction
+            await session.commitTransaction();
+            session.endSession();
+
+            io.emit("newAppointment");
+
+            return res.status(201).json({ticket: newTicket, message: "Tạo lịch hẹn thành công"});
+        } catch (error) {
+            if (error.code === 112) { // WriteConflict error
+                retries--;
+                if (retries === 0) {
+                    console.log("Error in createAppointmentTicket after retrying:", error);
+                    return res.status(500).json({message: "Lỗi khi tạo lịch hẹn, vui lòng thử lại sau."});
+                }
+                console.log("Retrying transaction due to WriteConflict...");
+                await session.abortTransaction(); // Hủy giao dịch hiện tại
+                session.startTransaction(); // Khởi động lại giao dịch
+            } else if (error.code === 11000) { // Lỗi trùng key
+                return res.status(409).json({message: "Lịch hẹn đã tồn tại"});
+            } else {
+                console.log("Error in createAppointmentTicket:", error);
+                return res.status(500).json({message: error.message});
             }
         }
-
-        checkValidDateTime(requestedDate, requestedTime, res);
-
-        // Kiểm tra xem có lịch hẹn trùng không
-        const isDuplicate = await checkAvailableAppointment(doctorId, requestedDate, requestedTime);
-        if (isDuplicate) {
-            return res.status(409).json({message: "Lịch hẹn với thời gian và bác sĩ này đã được đặt trước đó! Vui lòng chọn thời gian hoặc bác sĩ khác"});
-        }
-
-        const endTime = moment(`${requestedTime}`, "HH:mm").add(serviceInfo.duration, "minutes").format("HH:mm");
-
-        const ticket = new AppointmentTicket({
-            customerName,
-            customerPhone,
-            customerEmail,
-            requestedDate,
-            requestedTime,
-            requestedService: service,
-            doctorId,
-            endTime: endTime.toString(),
-            createBy: createBy ? createBy : "customer",
-            note,
-        });
-
-        const newTicket = await ticket.save({session});
-
-        if (newTicket) {
-            if (customerEmail)
-                await sendResponseAppointmentRequest(customerEmail, customerName, requestedDate, requestedTime, doctor.employeeName, service);
-        }
-
-        // Hoàn thành transaction
-        await session.commitTransaction();
-        session.endSession();
-
-        io.emit("newAppointment");
-
-        return res.status(201).json({ticket: newTicket, message: "Tạo lịch hẹn thành công"});
-    } catch (error) {
-        if (error.code === 11000) { // Mã lỗi MongoDB khi trùng key
-            return res.status(409).json({message: "Lịch hẹn đã tồn tại"});
-        }
-        console.log("Error in createAppointmentTicket:", error);
-        return res.status(500).json({message: error.message});
     }
 };
-
 
 // Lấy tất cả phiếu hẹn
 const getAllAppointmentTickets = async (req, res) => {
@@ -173,17 +212,17 @@ const getAllAppointmentTickets = async (req, res) => {
 const getAvailableDoctors = async (req, res) => {
     try {
         const startDate = moment(); // Ngày hiện tại
-        console.log("Start Date:", startDate.format("DD/MM/YYYY"));
+        // console.log("Start Date:", startDate.format("DD/MM/YYYY"));
         const endDate = moment().add(7, "days"); // Sau 7 ngày
-        console.log("End Date:", endDate.format("DD/MM/YYYY"));
+        // console.log("End Date:", endDate.format("DD/MM/YYYY"));
         const availableTimeSlots = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
         // Lấy danh sách bác sĩ đang làm việc
         const doctors = await Employee.find({
             position: "doctor",
             isWorking: true
-        }).select("employeeID employeeName workingTime urlAvatar");
-        console.log("Doctors:", doctors);
+        }).select("employeeID employeeName workingTime urlAvatar gender");
+        // console.log("Doctors:", doctors);
 
         // Lấy danh sách phiếu hẹn trong 7 ngày
         const appointmentTickets = await AppointmentTicket.find({
@@ -191,10 +230,10 @@ const getAvailableDoctors = async (req, res) => {
                 $gte: startDate.format("DD/MM/YYYY"),
                 $lte: endDate.format("DD/MM/YYYY")
             },
-            // trạng thái chờ xác nhận hoặc đã hoàn thành
-            status: {$in: ["waiting", "done"]}
+            // trạng thái chờ xác nhận hoặc đã hủy
+            status: {$in: ["waiting", "cancelled"]}
         });
-        console.log("Appointment Tickets:", appointmentTickets);
+        // console.log("Appointment Tickets:", appointmentTickets);
 
         const doctorAvailability = doctors.map(doctor => {
             const freeTimes = {}; // Object lưu thời gian rảnh theo ngày
@@ -234,10 +273,12 @@ const getAvailableDoctors = async (req, res) => {
                 );
 
                 // Log các phiếu hẹn của bác sĩ cho ngày hiện tại
-                console.log(`Appointments for Doctor ${doctor.employeeName} on ${currentDay.format("DD/MM/YYYY")}:`, appointments);
+                // console.log(`Appointments for Doctor ${doctor.employeeName} on ${currentDay.format("DD/MM/YYYY")}:`, appointments);
 
                 // Lọc các giờ trùng với phiếu hẹn
                 appointments.forEach(ticket => {
+                    if (ticket.status === "cancelled") return;
+
                     const appointmentStart = moment(ticket.requestedTime, "HH:mm");
                     const appointmentEnd = moment(ticket.endTime, "HH:mm");
 
@@ -271,6 +312,7 @@ const getAvailableDoctors = async (req, res) => {
                 doctorId: doctor.employeeID,
                 doctorName: doctor.employeeName,
                 doctorAvatar: doctor.urlAvatar,
+                doctorGender: doctor.gender,
                 availableTimes: freeTimes,
             };
         });
@@ -359,11 +401,12 @@ const autoCancellExpiredTickets = async () => {
             const isCancelled = await AppointmentTicket.findByIdAndUpdate(ticket._id, {
                 status: "cancelled",
                 reasonCancelled: "Hết hạn",
-                cancelledBy: "Hệ thống"
+                cancelledBy: "Hệ thống",
+                cancelledAt: getVietnamTimeString(),
             });
             console.log("isCancelled", isCancelled.customerName);
             if (isCancelled) {
-                await sendCancellAppointmentTicket(ticket.customerEmail, ticket.customerName, "rejected", ticket.requestedDate, ticket.requestedTime, ticket.service, "Hết hạn", "Hệ thống");
+                await sendCancellAppointmentTicket(ticket.customerEmail, ticket.customerName, "Đã hủy", ticket.requestedDate, ticket.requestedTime, ticket.service, "Hệ thống", "Hết hạn", getVietnamTimeString());
             }
         }));
 
@@ -381,6 +424,79 @@ const cancelTicket = async (req, res) => {
     const {id} = req.params;
 
     const {reason, cancelledBy} = req.body;
+
+    try {
+        const ticket = await AppointmentTicket.findById(id);
+        if (!ticket) {
+            return res.status(404).json({message: "Không tìm thấy phiếu hẹn"});
+        }
+
+        if (ticket.status === "cancelled") {
+            return res.status(400).json({message: "Phiếu hẹn đã bị hủy"});
+        }
+
+        if (ticket.status === "done") {
+            return res.status(400).json({message: "Phiếu hẹn đã hoàn thành không thể hủy"});
+        }
+
+        const isCancelled = await AppointmentTicket.findByIdAndUpdate(id, {
+            status: "cancelled",
+            reasonCancelled: reason,
+            cancelledBy: cancelledBy,
+            cancelledAt: getVietnamTimeString(),
+        });
+
+        if (isCancelled) {
+            await sendCancellAppointmentTicket(ticket.customerEmail, ticket.customerName, "Đã hủy", ticket.requestedDate, ticket.requestedTime, ticket.requestedService, cancelledBy, reason, getVietnamTimeString());
+        }
+
+        io.emit("responseTicket");
+
+        return res.status(200).json({message: "Hủy phiếu hẹn thành công"});
+    } catch (error) {
+        console.log("error in cancel ticket", error);
+        return res.status(500).json({message: error});
+    }
+}
+
+const confirmCustomerIsArrived = async (req, res) => {
+    const {id} = req.params; // ticket id
+    const {confirmedBy} = req.body;
+
+    try {
+        const ticket = await AppointmentTicket.findById(id);
+
+        if (!ticket) {
+            return res.status(404).json({message: "Không tìm thấy phiếu hẹn"});
+        }
+
+        if (ticket.status === "cancelled") {
+            return res.status(400).json({message: "Phiếu hẹn đã bị hủy"});
+        }
+
+        if (ticket.status === "done") {
+            return res.status(400).json({message: "Phiếu hẹn đã hoàn thành"});
+        }
+
+        if (ticket.isCustomerArrived) {
+            return res.status(400).json({message: "Đã xác nhận khách hàng đã đến"});
+        }
+
+        const isConfirmed = await AppointmentTicket.updateOne({_id: id}, {
+            isCustomerArrived: true,
+            confirmedBy: confirmedBy,
+            arrivedAt: getVietnamTimeString(),
+        })
+
+        if (isConfirmed) {
+            io.emit("responseTicket");
+        }
+
+        return res.status(200).json({message: "Xác nhận khách hàng đã đến thành công"});
+    } catch (error) {
+        console.log("error in confirm customer is arrived", error);
+        return res.status(500).json({message: error});
+    }
 }
 
 module.exports = {
@@ -388,5 +504,7 @@ module.exports = {
     getAppointmentTicketsByDoctorId,
     getAppointmentTicketById,
     createAppointmentTicket,
-    getAvailableDoctors
+    getAvailableDoctors,
+    cancelTicket,
+    confirmCustomerIsArrived
 };

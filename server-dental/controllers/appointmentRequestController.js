@@ -426,5 +426,4 @@ const autoRejectExpiredRequests = async () => {
 
 
 
-
 module.exports = { createAppointmentRequest, getAllRequest, getListDoctorAvailability, changeRequest, getRequestById, responseRequest, checkDoctorAvailability };
