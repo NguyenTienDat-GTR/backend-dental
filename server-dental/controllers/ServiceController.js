@@ -1,6 +1,7 @@
 const Service = require("../models/Service");
 const Article = require("../models/Article");
 const ServiceType = require("../models/ServiceType");
+const AppointmentTicket = require("../models/AppointmentTicket");
 
 const validateServiceData = ({ name, price, description, serviceTypeName, discount, duration, priceRange, unit, res }) => {
     if (!name || !price || !description || !serviceTypeName || !discount || !duration) {
@@ -218,4 +219,45 @@ const deleteService = async (req, res) => {
         return res.status(400).json({ message: error.message });
     }
 }
-module.exports = { createService, getServiceById, getAllServices, updateService, deleteService };
+
+//các dịch vụ được đặt lịch nhiều nhất dựa theo phieu dat lich
+const getTopServices = async (req, res) => {
+    try {
+        // Lấy tất cả các dịch vụ
+        const services = await Service.find();
+
+        // Tạo map để lưu số lần đặt hẹn theo từng dịch vụ
+        const serviceCount = {};
+
+        // Lấy tất cả phiếu hẹn
+        const tickets = await AppointmentTicket.find();
+
+        // Đếm số lần đặt hẹn cho mỗi dịch vụ
+        tickets.forEach(ticket => {
+            if (serviceCount[ticket.requestedService]) {// nếu đã có dịch vụ này trong map thì tăng số lần đặt lên 1
+                serviceCount[ticket.requestedService]++;
+            } else {
+                serviceCount[ticket.requestedService] = 1;// nếu chưa có thì tạo mới và gán số lần đặt là 1
+            }
+        });
+
+        // Tạo danh sách dịch vụ với số lần đặt
+        const serviceStats = services.map(service => ({
+            name: service.name,
+            count: serviceCount[service.name] || 0,
+        }));
+
+        // Sắp xếp theo số lần đặt hẹn giảm dần và lấy top 5
+        const topServices = serviceStats
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        return res.status(200).json({ topServices });
+    } catch (error) {
+        console.error("Error in get top services:", error);
+        return res.status(400).json({ message: error.message });
+    }
+};
+
+
+module.exports = { createService, getServiceById, getAllServices, updateService, deleteService, getTopServices };

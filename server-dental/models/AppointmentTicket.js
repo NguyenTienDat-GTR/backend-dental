@@ -17,22 +17,9 @@ const getVietnamTimeString = () => {
 
 //  Phiếu Hẹn
 const appointmentTicketSchema = new mongoose.Schema({
-    customerName: {
-        type: String,
-        required: true,
-    },
-    customerPhone: {
-        type: String,
-        required: true,
-        unique: true,
-    },
-    customerEmail: {
-        type: String,
-        unique: true,
-    },
-    customerGender: {
-        type: String,
-        enum: ["male", "female"],
+    customer:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Customer",
         required: true,
     },
     requestedService: {

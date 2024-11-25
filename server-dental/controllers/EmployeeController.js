@@ -229,9 +229,6 @@ const updateEmployee = async (req, res) => {
             });
         }
 
-        console.log(JSON.parse(workingTime))
-        console.log(JSON.parse(editBy))
-        console.log(JSON.parse(employeeSpecialization))
 
         // Xử lý các trường JSON
         const parsedWorkingTime = JSON.parse(workingTime);

@@ -32,7 +32,7 @@ const Service = new mongoose.Schema({
     }],
     unit: {
         type: String,
-        enum: ["tooth", "jaw", "treatment", "set", "session",],
+        enum: ["tooth", "jaw", "treatment", "set", "session",],// răng, hàm, liệu trình, bộ, lần
         default: "session"
     },
     blog: {

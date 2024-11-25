@@ -9,7 +9,8 @@ const {
     createAppointmentTicket,
     getAvailableDoctors,
     cancelTicket,
-    confirmCustomerIsArrived
+    confirmCustomerIsArrived,
+    getTopDoctor
 } = require("../controllers/AppointmentTicketController");
 
 router.get("/all", authMiddleware(["admin", "employee"]), getAllAppointmentTickets);
@@ -19,5 +20,6 @@ router.post("/create", createAppointmentTicket);
 router.get("/getAvailableDoctors", getAvailableDoctors);
 router.put("/cancelTicket/:id",authMiddleware(["admin", "employee"]), cancelTicket);
 router.put("/confirmCustomerIsArrived/:id", authMiddleware(["admin", "employee"]), confirmCustomerIsArrived);
+router.get("/getTopDoctor",authMiddleware(["admin"]), getTopDoctor);
 
 module.exports = router;
