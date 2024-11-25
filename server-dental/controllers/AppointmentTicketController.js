@@ -592,6 +592,28 @@ const getTopDoctor = async (req, res) => {
     }
 };
 
+const appointmentSumary = async (req, res) => {
+    try {
+        // Tính toán số lượng theo từng trạng thái
+        const [totalAppointments, cancelled, waiting, done] = await Promise.all([
+            AppointmentTicket.countDocuments(), // Tổng số lịch hẹn
+            AppointmentTicket.countDocuments({status: "cancelled"}), // Lịch hẹn bị hủy
+            AppointmentTicket.countDocuments({status: "waiting"}), // Lịch hẹn đang chờ
+            AppointmentTicket.countDocuments({status: "done"}) // Lịch hẹn đã hoàn thành
+        ]);
+
+        // Trả về dữ liệu
+        res.status(200).json({
+            totalAppointments,
+            cancelled,
+            waiting,
+            done
+        });
+    } catch (error) {
+        console.error("Error fetching appointment summary:", error);
+        res.status(500).json({error: "Internal server error"});
+    }
+}
 
 module.exports = {
     getAllAppointmentTickets,
@@ -601,5 +623,6 @@ module.exports = {
     getAvailableDoctors,
     cancelTicket,
     confirmCustomerIsArrived,
-    getTopDoctor
+    getTopDoctor,
+    appointmentSumary,
 };
