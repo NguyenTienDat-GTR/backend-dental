@@ -14,6 +14,5 @@ router.put("/update/:id", authMiddleware(["admin"]), updateArticle);
 router.delete("/delete/:id", authMiddleware(["admin"]), deleteArticle);
 
 // Lấy bài viết theo serviceId
-router.get("/getByServiceId/:serviceId", getArticleByServiceId); 
-
+// router.get("/getByServiceId/:serviceId", getArticleByServiceId); 
 module.exports = router

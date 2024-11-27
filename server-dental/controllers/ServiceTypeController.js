@@ -113,3 +113,4 @@ const updateServiceType = async (req, res) => {
     }
 };
 module.exports = { getAllServiceTypes, createServiceType, deleteServiceType, updateServiceType };
+ 

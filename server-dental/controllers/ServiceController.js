@@ -116,14 +116,8 @@ const getAllServices = async (req, res) => {
 
 const updateService = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { 
-            name, price, description, serviceTypeName, discount, 
-            duration, priceRange, unit, blogId, blogTitle, blogContent 
-        } = req.body;
-
-        // Validate input dữ liệu
-        validateServiceData({ name, price, description, serviceTypeName, discount, duration, priceRange, unit, res });
+        const { id } = req.params; // Lấy ID dịch vụ
+        const { price, description, priceRange, unit, discount, duration } = req.body;
 
         // Tìm dịch vụ cần cập nhật
         const service = await Service.findById(id);
@@ -131,50 +125,13 @@ const updateService = async (req, res) => {
             return res.status(404).json({ message: "Dịch vụ không tồn tại" });
         }
 
-        // Kiểm tra nếu tên dịch vụ đã tồn tại
-        if (name && name !== service.name) {
-            const existingService = await Service.findOne({ name });
-            if (existingService) {
-                return res.status(400).json({ message: "Tên dịch vụ đã tồn tại" });
-            }
-        }
-
-        // Cập nhật thông tin dịch vụ
-        service.name = name || service.name;
-        service.price = price || service.price;
-        service.description = description || service.description;
-        service.discount = discount || service.discount;
-        service.duration = duration || service.duration;
-        service.priceRange = priceRange || service.priceRange;
-        service.unit = unit || service.unit;
-
-        // Cập nhật ảnh nếu có
-        if (req.files) {
-            const imageUrls = getImageUrls(req.files, res);
-            if (imageUrls.length > 0) {
-                service.imageUrls = imageUrls;
-            }
-        }
-
-        // Xử lý cập nhật blog liên kết
-        if (blogId) {
-            const blog = await Blog.findById(blogId);
-            if (!blog) {
-                return res.status(404).json({ message: "Bài viết không tồn tại" });
-            }
-            blog.title = blogTitle || blog.title;
-            blog.content = blogContent || blog.content;
-            await blog.save();
-        }
-
-        // Cập nhật liên kết với ServiceType
-        if (serviceTypeName) {
-            const type = await ServiceType.findOne({ typeName: serviceTypeName });
-            if (type && !type.serviceList.includes(service._id)) {
-                type.serviceList.push(service._id);
-                await type.save();
-            }
-        }
+        // Cập nhật các trường được gửi (chỉ cập nhật nếu giá trị mới tồn tại)
+        service.price = price !== undefined ? price : service.price;
+        service.description = description !== undefined ? description : service.description;
+        service.priceRange = priceRange !== undefined ? priceRange : service.priceRange;
+        service.unit = unit !== undefined ? unit : service.unit;
+        service.discount = discount !== undefined ? discount : service.discount;
+        service.duration = duration !== undefined ? duration : service.duration;
 
         // Lưu dịch vụ sau khi cập nhật
         await service.save();
@@ -185,13 +142,11 @@ const updateService = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in update service:", error);
-
-        // Trả về lỗi nếu xảy ra ngoại lệ
-        if (!res.headersSent) {
-            return res.status(500).json({ message: "Lỗi hệ thống. Vui lòng thử lại sau." });
-        }
+        return res.status(500).json({ message: "Lỗi hệ thống. Vui lòng thử lại sau." });
     }
 };
+
+
 const deleteService = async (req, res) => {
     try {
         const { id } = req.params;
@@ -220,10 +175,10 @@ const deleteService = async (req, res) => {
             type.serviceList = type.serviceList.filter(serviceId => !serviceId.equals(service._id));
             await type.save();
             console.log("Dịch vụ đã được xóa khỏi loại dịch vụ");
-            
-        }else{
+
+        } else {
             console.log("Không tim thấy loại dịch vụ liên kết với dịch vụ này");
-            
+
         }
 
         return res.status(200).json({

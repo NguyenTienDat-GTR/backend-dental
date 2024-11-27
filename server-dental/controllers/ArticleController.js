@@ -1,5 +1,5 @@
 const Article = require('../models/Article');
-
+const Service = require('../models/Service')
 // Hàm để lấy danh sách URL từ file ảnh
 const getImageUrls = (files) => {
     if (!files || files.length === 0) {
@@ -52,7 +52,7 @@ const createArticle = async (req, res) => {
     }
 };
 const updateArticle = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; // ID của dịch vụ
     let { title, mainHeadings, createBy } = req.body;
 
     try {
@@ -61,38 +61,38 @@ const updateArticle = async (req, res) => {
             mainHeadings = JSON.parse(mainHeadings);
         }
 
-        // Validate dữ liệu bài viết
-        if (!title || !mainHeadings || !createBy) {
-            return res.status(400).json({ message: "Cần điền đầy đủ thông tin bài viết" });
+        // Tìm dịch vụ dựa vào ID
+        const service = await Service.findById(id).populate('blog'); // Populate để lấy bài viết liên quan
+        if (!service || !service.blog) {
+            return res.status(404).json({ message: "Dịch vụ hoặc bài viết không tồn tại" });
         }
 
-        // Tìm bài viết cần cập nhật theo id
-        const article = await Article.findById(id);
-        if (!article) {
-            return res.status(404).json({ message: "Bài viết không tồn tại" });
-        }
+        // Lấy bài viết liên quan đến dịch vụ
+        const article = service.blog;
 
-        // Cập nhật thông tin bài viết
+        // Cập nhật thông tin bài viết, giữ giá trị cũ nếu không có dữ liệu mới
         article.title = title || article.title;
         article.mainHeadings = mainHeadings || article.mainHeadings;
         article.createBy = createBy || article.createBy;
 
         // Xử lý hình ảnh từ req.files và cập nhật vào mainHeadings
-        req.files.forEach((file) => {
-            const { fieldname, path } = file;
-            const [level, mainIndex, subIndex, subSubIndex] = fieldname.split("_");
+        if (req.files && Array.isArray(req.files)) {
+            req.files.forEach((file) => {
+                const { fieldname, path } = file;
+                const [level, mainIndex, subIndex, subSubIndex] = fieldname.split("_");
 
-            if (level === "main") {
-                article.mainHeadings[mainIndex].imageUrls = article.mainHeadings[mainIndex].imageUrls || [];
-                article.mainHeadings[mainIndex].imageUrls.push(path);
-            } else if (level === "sub" && subIndex !== undefined) {
-                article.mainHeadings[mainIndex].subheadings[subIndex].imageUrls = article.mainHeadings[mainIndex].subheadings[subIndex].imageUrls || [];
-                article.mainHeadings[mainIndex].subheadings[subIndex].imageUrls.push(path);
-            } else if (level === "subSub" && subSubIndex !== undefined) {
-                article.mainHeadings[mainIndex].subheadings[subIndex].subSubheadings[subSubIndex].imageUrls = article.mainHeadings[mainIndex].subheadings[subIndex].subSubheadings[subSubIndex].imageUrls || [];
-                article.mainHeadings[mainIndex].subheadings[subIndex].subSubheadings[subSubIndex].imageUrls.push(path);
-            }
-        });
+                if (level === "main") {
+                    article.mainHeadings[mainIndex].imageUrls = article.mainHeadings[mainIndex].imageUrls || [];
+                    article.mainHeadings[mainIndex].imageUrls.push(path);
+                } else if (level === "sub" && subIndex !== undefined) {
+                    article.mainHeadings[mainIndex].subheadings[subIndex].imageUrls = article.mainHeadings[mainIndex].subheadings[subIndex].imageUrls || [];
+                    article.mainHeadings[mainIndex].subheadings[subIndex].imageUrls.push(path);
+                } else if (level === "subSub" && subSubIndex !== undefined) {
+                    article.mainHeadings[mainIndex].subheadings[subIndex].subSubheadings[subSubIndex].imageUrls = article.mainHeadings[mainIndex].subheadings[subIndex].subSubheadings[subSubIndex].imageUrls || [];
+                    article.mainHeadings[mainIndex].subheadings[subIndex].subSubheadings[subSubIndex].imageUrls.push(path);
+                }
+            });
+        }
 
         // Lưu bài viết đã được cập nhật
         await article.save();
@@ -103,6 +103,8 @@ const updateArticle = async (req, res) => {
         return res.status(400).json({ message: error.message });
     }
 };
+
+
 const deleteArticle = async (req, res) => {
     const { id } = req.params; // Lấy id của bài viết từ URL
 
