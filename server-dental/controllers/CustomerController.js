@@ -11,7 +11,7 @@ const getVietnamTimeString = () => {
         second: '2-digit',
         hour12: false,
     };
-    return now.toLocaleString("en-GB", { timeZone: "Asia/Ho_Chi_Minh", ...options }).replace(',', '');
+    return now.toLocaleString("en-GB", {timeZone: "Asia/Ho_Chi_Minh", ...options}).replace(',', '');
 };
 
 const getAllCustomers = async (req, res) => {
@@ -19,10 +19,22 @@ const getAllCustomers = async (req, res) => {
         const customers = await Customer.find();
         res.json(customers);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({message: error.message});
+    }
+}
+
+const getCustomerByID = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const customer = await Customer.findById(id).populate('medicalRecord');
+        res.json(customer);
+    } catch (error) {
+        res.status(500).json({message: error.message});
+        console.error("Error fetching customer data:", error)
     }
 }
 
 module.exports = {
     getAllCustomers,
+    getCustomerByID
 }

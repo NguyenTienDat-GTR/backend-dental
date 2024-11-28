@@ -44,7 +44,11 @@ const customerSchema = new mongoose.Schema({
     createdAt: {
         type: String,
         default: getVietnamTimeString(),
-    }
+    },
+    medicalRecord: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'MedicalRecord',
+    }],
 
 });
 

@@ -12,7 +12,7 @@ const getVietnamTimeString = () => {
         second: '2-digit',
         hour12: false,
     };
-    return now.toLocaleString("en-GB", { timeZone: "Asia/Ho_Chi_Minh", ...options }).replace(',', '');
+    return now.toLocaleString("en-GB", {timeZone: "Asia/Ho_Chi_Minh", ...options}).replace(',', '');
 };
 
 
@@ -28,6 +28,11 @@ const AppointmentRequest = new mongoose.Schema({
     customerEmail: {
         type: String,
         required: true,
+    },
+    gender: {
+        type: String,
+        required: true,
+        enum: ["male", "female"],
     },
     appointmentDate: {
         type: String,
@@ -63,9 +68,9 @@ const AppointmentRequest = new mongoose.Schema({
     rejectBy: {
         type: String
     },
-    genderDoctor: {
+    doctorId: {
         type: String,
-        enum: ["male", "female", "all"],
+        required: true,
     },
     createBy: {
         type: String,

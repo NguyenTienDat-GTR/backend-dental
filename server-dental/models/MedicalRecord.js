@@ -1,4 +1,4 @@
-const monggose = require('mongoose');
+const mongoose = require('mongoose');
 
 const getVietnamTimeString = () => {
     const now = new Date();
@@ -14,9 +14,9 @@ const getVietnamTimeString = () => {
     return now.toLocaleString("en-GB", { timeZone: "Asia/Ho_Chi_Minh", ...options }).replace(',', '');
 };
 
-const MedicalRecordSchema = new monggose.Schema({
+const MedicalRecordSchema = new mongoose.Schema({
     customerID: {
-        type: monggose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
         required: true,
     },
@@ -28,13 +28,20 @@ const MedicalRecordSchema = new monggose.Schema({
         type: String,
         required: true,
     },
-    serviceID: [{
-        type: monggose.Schema.Types.ObjectId,
-        ref: 'Service',
-        required: true,
+    usedService: [
+        {
+        service:{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Service',
+            required: true,
+        },
+            for: {
+                type: String,
+            },
+
     }],
     appointmentID: {
-        type: monggose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'AppointmentTicket',
         required: true,
     },
@@ -50,7 +57,6 @@ const MedicalRecordSchema = new monggose.Schema({
     },
     note: {
         type: String,
-        required: true,
     },
     // ngày khám
     date: {
@@ -59,3 +65,31 @@ const MedicalRecordSchema = new monggose.Schema({
     },
 
 });
+
+// Middleware trước khi lưu MedicalRecord
+MedicalRecordSchema.pre('save', async function(next) {
+    for (const item of this.usedService) {
+        const service = await mongoose.model('Service').findById(item.service);
+
+        if (service) {
+            if (service.unit === 'tooth') {
+                // Kiểm tra nếu unit là 'tooth', for là tên của tooth, không phải ID
+                const toothExists = await mongoose.model('Tooth').findOne({ name: item.for });
+                if (!toothExists) {
+                    throw new Error('Invalid Tooth name for usedService');
+                }
+            } else if (service.unit === 'jaw') {
+                const jawExists = await mongoose.model('Jaw').findOne({ name: item.for });
+                if (!jawExists) {
+                    throw new Error('Invalid Jaw name for usedService');
+                }
+            } else {
+                item.for = null;
+            }
+        }
+    }
+    next();
+});
+
+
+module.exports = mongoose.model('MedicalRecord', MedicalRecordSchema);

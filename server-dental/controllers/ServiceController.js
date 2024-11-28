@@ -2,8 +2,20 @@ const Service = require("../models/Service");
 const Article = require("../models/Article");
 const ServiceType = require("../models/ServiceType");
 const AppointmentTicket = require("../models/AppointmentTicket");
+const Tooth = require("../models/Tooth");
+const Jaw = require("../models/Jaw");
 
-const validateServiceData = ({ name, price, description, serviceTypeName, discount, duration, priceRange, unit, res }) => {
+const validateServiceData = ({
+                                 name,
+                                 price,
+                                 description,
+                                 serviceTypeName,
+                                 discount,
+                                 duration,
+                                 priceRange,
+                                 unit,
+                                 res
+                             }) => {
     if (!name || !price || !description || !serviceTypeName || !discount || !duration) {
         return res.status(400).json("Cần điền đầy đủ thông tin");
     }
@@ -35,16 +47,16 @@ const getImageUrls = (files, res) => {
 
 const createService = async (req, res) => {
     try {
-        const { name, price, description, serviceTypeName, discount, duration, priceRange, unit } = req.body;
+        const {name, price, description, serviceTypeName, discount, duration, priceRange, unit} = req.body;
 
-        let { blogId } = req.body;
+        let {blogId} = req.body;
 
         // Validate service data
-        validateServiceData({ name, price, description, serviceTypeName, discount, duration, priceRange, unit, res });
+        validateServiceData({name, price, description, serviceTypeName, discount, duration, priceRange, unit, res});
 
         // Check if service name already exists
-        if (await Service.findOne({ name })) {
-            return res.status(400).json({ message: "Tên dịch vụ đã tồn tại" });
+        if (await Service.findOne({name})) {
+            return res.status(400).json({message: "Tên dịch vụ đã tồn tại"});
         }
 
         // Get image URLs
@@ -69,9 +81,9 @@ const createService = async (req, res) => {
         await service.save();
 
         // Find the service type and add the service to it
-        const type = await ServiceType.findOne({ typeName: serviceTypeName });
+        const type = await ServiceType.findOne({typeName: serviceTypeName});
         if (!type) {
-            return res.status(404).json({ message: "Loại dịch vụ không tồn tại" });
+            return res.status(404).json({message: "Loại dịch vụ không tồn tại"});
         }
 
         type.serviceList.push(service._id);
@@ -83,24 +95,24 @@ const createService = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in create service", error);
-        return res.status(400).json({ message: error.message });
+        return res.status(400).json({message: error.message});
     }
 };
 
 const getServiceById = async (req, res) => {
     try {
-        const { id } = req.params;
+        const {id} = req.params;
 
         const service = await Service.findById(id).populate("blog");
 
         if (!service) {
-            return res.status(404).json({ message: "Dịch vụ không tồn tại" });
+            return res.status(404).json({message: "Dịch vụ không tồn tại"});
         }
 
-        return res.status(200).json({ service });
+        return res.status(200).json({service});
     } catch (error) {
         console.error("Error in get service by id", error);
-        return res.status(400).json({ message: error.message });
+        return res.status(400).json({message: error.message});
     }
 }
 
@@ -108,27 +120,27 @@ const getAllServices = async (req, res) => {
     try {
         const services = await Service.find().populate("blog");
 
-        return res.status(200).json({ services });
+        return res.status(200).json({services});
     } catch (error) {
         console.error("Error in get all services", error);
-        return res.status(400).json({ message: error.message });
+        return res.status(400).json({message: error.message});
     }
 }
 
 const updateService = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { name, price, description, serviceTypeName, discount, duration, priceRange, unit, blogId } = req.body;
+        const {id} = req.params;
+        const {name, price, description, serviceTypeName, discount, duration, priceRange, unit, blogId} = req.body;
 
-        validateServiceData({ name, price, description, serviceTypeName, discount, duration, priceRange, unit, res });
+        validateServiceData({name, price, description, serviceTypeName, discount, duration, priceRange, unit, res});
 
         const service = await Service.findById(id);
         if (!service) {
-            return res.status(404).json({ message: "Dịch vụ không tồn tại" });
+            return res.status(404).json({message: "Dịch vụ không tồn tại"});
         }
 
-        if (name && name !== service.name && await Service.findOne({ name })) {
-            return res.status(400).json({ message: "Tên dịch vụ đã tồn tại" });
+        if (name && name !== service.name && await Service.findOne({name})) {
+            return res.status(400).json({message: "Tên dịch vụ đã tồn tại"});
         }
 
         service.name = name || service.name;
@@ -152,7 +164,7 @@ const updateService = async (req, res) => {
         await service.save();
 
         // Find and update the service type
-        const type = await ServiceType.findOne({ typeName: serviceTypeName });
+        const type = await ServiceType.findOne({typeName: serviceTypeName});
         if (type && !type.serviceList.includes(service._id)) {
             type.serviceList.push(service._id);
             await type.save();
@@ -163,7 +175,7 @@ const updateService = async (req, res) => {
             // Assume you have a Blog model and a method to update blog
             const blog = await Blog.findById(blogId);
             if (!blog) {
-                return res.status(404).json({ message: "Bài viết không tồn tại" });
+                return res.status(404).json({message: "Bài viết không tồn tại"});
             }
 
             // Update blog fields as necessary
@@ -179,16 +191,16 @@ const updateService = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in update service", error);
-        return res.status(400).json({ message: error.message });
+        return res.status(400).json({message: error.message});
     }
 }
 const deleteService = async (req, res) => {
     try {
-        const { id } = req.params;
+        const {id} = req.params;
 
         const service = await Service.findById(id);
         if (!service) {
-            return res.status(404).json({ message: "Dịch vụ không tồn tại" });
+            return res.status(404).json({message: "Dịch vụ không tồn tại"});
         }
 
         // Xóa bài viết nếu có liên kết thông qua blogId
@@ -205,7 +217,7 @@ const deleteService = async (req, res) => {
         await service.deleteOne();
 
         // Cập nhật lại loại dịch vụ (ServiceType)
-        const type = await ServiceType.findOne({ serviceList: service._id });
+        const type = await ServiceType.findOne({serviceList: service._id});
         if (type) {
             type.serviceList = type.serviceList.filter(serviceId => !serviceId.equals(service._id));
             await type.save();
@@ -216,7 +228,7 @@ const deleteService = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in delete service", error);
-        return res.status(400).json({ message: error.message });
+        return res.status(400).json({message: error.message});
     }
 }
 
@@ -252,12 +264,44 @@ const getTopServices = async (req, res) => {
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
 
-        return res.status(200).json({ topServices });
+        return res.status(200).json({topServices});
     } catch (error) {
         console.error("Error in get top services:", error);
-        return res.status(400).json({ message: error.message });
+        return res.status(400).json({message: error.message});
     }
 };
 
+const getTooth = async (req, res) => {
+    try {
+        const tooth = await Tooth.find();
+        return res.status(200).json({tooth});
 
-module.exports = { createService, getServiceById, getAllServices, updateService, deleteService, getTopServices };
+    } catch (error) {
+        console.error("Error in get tooth:", error);
+        return res.status(400).json({message: error.message});
+    }
+
+}
+const getJaw = async (req, res) => {
+    try {
+        const jaw = await Jaw.find();
+        return res.status(200).json({jaw});
+
+    } catch (error) {
+        console.error("Error in get jaw:", error);
+        return res.status(400).json({
+            message: error.message
+        });
+    }
+}
+
+module.exports = {
+    createService,
+    getServiceById,
+    getAllServices,
+    updateService,
+    deleteService,
+    getTopServices,
+    getTooth,
+    getJaw
+};

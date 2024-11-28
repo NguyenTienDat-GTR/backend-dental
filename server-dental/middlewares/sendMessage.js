@@ -50,13 +50,13 @@ const sendPasswordResetEmail = async (email, resetLink) => {
         console.log("Email đã được gửi:", info.response);
     });
 };
-const sendCreateAppointmentRequest = async (email, name, date, time, service, note, concern) => {
+const sendCreateAppointmentRequest = async (email, name, date, time, service,doctor, note, concern) => {
     const transporter = createTransporter();
     const message = {
         from: USER_MAIL,
         to: email,
         subject: "Yêu cầu đặt lịch khám - Nha Khoa HBT",
-        text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được gửi thành công.\n\nDịch vụ: ${service}\nNgày: ${date}\nGiờ: ${time}\nGhi chú: ${note}\n\nChúng tôi sẽ phản hồi cho bạn trong vòng 15 phút \n\nNếu quá 15 phút yêu cầu sẽ bị từ chối bởi hệ thống\n\nXin cảm ơn!`,
+        text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được gửi thành công.\n\nDịch vụ: ${service}\nNgày: ${date}\nGiờ: ${time}\nBác sĩ: ${doctor}\nGhi chú: ${note}\n\nChúng tôi sẽ phản hồi cho bạn trong vòng 30 phút trong giờ hành chính hoặc 6 giờ sáng hôm sau nếu thời gian gửi yêu cầu không trong giờ hành chính \n\nXin cảm ơn!`,
     };
 
     transporter.sendMail(message, (error, info) => {
@@ -67,17 +67,26 @@ const sendCreateAppointmentRequest = async (email, name, date, time, service, no
     });
 }
 
-const sendResponseAppointmentRequest = async (email, name, date, time, doctor, service) => {
+const sendResponseAppointmentRequest = async (email, name, status, date, time, by, reason,doctor) => {
     const transporter = createTransporter();
     let message = {};
-
-    message = {
-        from: USER_MAIL,
-        to: email,
-        subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
-        text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được tạo thành công.\n\nBác sĩ yêu cầu: ${doctor}\n\nDịch vụ yêu cầu: ${service}\n\nBạn vui lòng đến phòng khám sớm hơn 30 phút vào ngày ${date} lúc ${time} để xác nhận.\n\nXin cảm ơn!`,
-    };
-
+    if (status === "accepted") {
+        const accept = "Đã được chấp nhận";
+        message = {
+            from: USER_MAIL,
+            to: email,
+            subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
+            text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được xử lí.\nTrạng thái yêu cầu: ${accept}\n\nBác sĩ:${doctor}\n\nBạn vui lòng đến khám sớm 30 phút vào ngày ${date} lúc ${time}.\n\nĐược chấp nhận bởi: ${by}\n\nXin cảm ơn!`,
+        };
+    } else if (status === "rejected") {
+        const reject = "Đã bị từ chối";
+        message = {
+            from: USER_MAIL,
+            to: email,
+            subject: "Phản hồi yêu cầu đăt lịch khám - Nha Khoa HBT",
+            text: `Xin chào ${name},\n\nYêu cầu đặt lịch khám của bạn đã được xử lí.\nTrạng thái yêu cầu: ${reject}\n\nLý do từ chối: ${reason}\n\nTừ chối bởi: ${by}\n\nXin cảm ơn!`,
+        }
+    }
 
     transporter.sendMail(message, (error, info) => {
         if (error) {
