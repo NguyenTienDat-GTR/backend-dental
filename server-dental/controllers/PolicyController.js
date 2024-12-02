@@ -35,12 +35,6 @@ const getPolicyById = async (req, res) => {
 // Hàm tạo Policy
 const createPolicy = async (req, res) => {
     let { title,summary, mainHeadings, createBy, createAt } = req.body;
-    console.log("Title:", title);
-    console.log("Main Headings:", mainHeadings);
-    console.log("summary",summary);
-    
-    console.log("Created By:", createBy);
-    console.log("Created At:", createAt);
     try {
         if (typeof mainHeadings === 'string') {
             mainHeadings = JSON.parse(mainHeadings);

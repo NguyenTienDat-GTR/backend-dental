@@ -3,8 +3,18 @@ const mongoose = require('mongoose');
 // Hàm để lấy thời gian theo múi giờ Việt Nam dưới dạng chuỗi
 const getVietnamTimeString = () => {
     const now = new Date();
-    return now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
+    const options = {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    };
+    return now.toLocaleString("en-GB", {timeZone: "Asia/Ho_Chi_Minh", ...options}).replace(',', '');
 };
+
 
 const AppointmentRequest = new mongoose.Schema({
     customerName: {
@@ -19,6 +29,11 @@ const AppointmentRequest = new mongoose.Schema({
         type: String,
         required: true,
     },
+    gender: {
+        type: String,
+        required: true,
+        enum: ["male", "female"],
+    },
     appointmentDate: {
         type: String,
         required: true,
@@ -28,8 +43,8 @@ const AppointmentRequest = new mongoose.Schema({
         required: true,
     },
     service: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Service",
+        type: String,
+        require: true
     },
     note: {
         type: String,
@@ -53,9 +68,9 @@ const AppointmentRequest = new mongoose.Schema({
     rejectBy: {
         type: String
     },
-    genderDoctor: {
+    doctorId: {
         type: String,
-        enum: ["male", "female"],
+        required: true,
     },
     createBy: {
         type: String,

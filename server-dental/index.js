@@ -17,6 +17,8 @@ const serviceRoute = require("./routes/ServiceRoute");
 const appointmentRequestRoute = require("./routes/AppointmentRequestRoute");
 const articleRoute = require("./routes/ArticleRoute")
 const policyRoute = require("./routes/PolicyRoutes")
+const ticketRoute = require("./routes/AppointmentTicketRoute");
+const knowledgeRouter = require("./routes/KnowledgeRouter")
 
 // Cấu hình CORS
 const corsOptions = {
@@ -49,3 +51,5 @@ app.use("/service", serviceRoute);
 app.use("/appointment-request", appointmentRequestRoute);
 app.use("/article", articleRoute)
 app.use("/policy", policyRoute)
+app.use("/ticket", ticketRoute);
+app.use("/knowledge", knowledgeRouter);
