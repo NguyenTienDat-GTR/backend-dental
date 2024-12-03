@@ -120,18 +120,55 @@ const createAppointmentRequest = async (req, res) => {
 
 const getAllRequest = async (req, res) => {
     try {
-        const request = await AppointmentRequest.find();
+        const { year, quarter, month } = req.query;
+
+        // Xây dựng bộ lọc cho AppointmentRequest
+        const filter = {};
+
+        // Lọc theo năm
+        if (year && year !== "all") {
+            filter.createAt = {
+                $regex: `.*${year} .*`,  // Tìm kiếm năm trong chuỗi dd/mm/yyyy hh:mm:ss
+            };
+        }
+
+        // Lọc theo quý
+        if (year && year !== "all" && quarter) {
+            const quarters = {
+                "1": ["01", "02", "03"],  // Quý 1 có các tháng 01, 02, 03
+                "2": ["04", "05", "06"],  // Quý 2 có các tháng 04, 05, 06
+                "3": ["07", "08", "09"],  // Quý 3 có các tháng 07, 08, 09
+                "4": ["10", "11", "12"],  // Quý 4 có các tháng 10, 11, 12
+            };
+
+            const monthsInQuarter = quarters[quarter];
+
+            if (monthsInQuarter) {
+                filter.createAt = {
+                    $regex: `.*(${monthsInQuarter.join("|")})/${year} .*`,  // Tìm các tháng trong quý và năm
+                };
+            }
+        }
+
+        // Lọc theo tháng và năm
+        if (month && year && year !== "all") {
+            filter.createAt = {
+                $regex: `.*${month.padStart(2, '0')}/${year} .*`,  // Tìm tháng trong năm (dd/mm/yyyy hh:mm:ss)
+            };
+        }
+
+        // Lấy danh sách yêu cầu theo bộ lọc
+        const request = await AppointmentRequest.find(filter);
+
         return res
             .status(200)
-            .json({request, message: "Lấy danh sách thành công"});
-    } catch {
-        error
-    }
-    {
+            .json({ request, message: "Lấy danh sách thành công" });
+    } catch (error) {
         console.error("Error in get all appointment request", error);
-        return res.status(500).json({message: "Internal server error"});
+        return res.status(500).json({ message: "Internal server error" });
     }
-}
+};
+
 
 // Hàm kiểm tra lịch bác sĩ
 const checkDoctorAvailability = async (appointmentRequest, res) => {
@@ -431,7 +468,7 @@ const responseRequest = async (req, res) => {
         return res.status(500).json({message: "Error response request"})
     }
 }
-
+//
 
 module.exports = {
     createAppointmentRequest,

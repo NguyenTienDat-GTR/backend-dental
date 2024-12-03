@@ -3,7 +3,7 @@ const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 // Hàm tạo middleware upload cho ảnh bài viết
-const uploadImageArticle = (folderName = 'Article') => {
+const uploadImageArticle = (folderName ) => {
     const storage = new CloudinaryStorage({
         cloudinary: cloudinary,
         allowedFormats: ['jpeg', 'jpg', 'png'],

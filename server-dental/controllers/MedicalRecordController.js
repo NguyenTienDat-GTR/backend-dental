@@ -52,9 +52,8 @@ const createMedicalRecord = async (req, res) => {
             appointmentID,
             diagnosis,
             result,
-            note, // optional,
+            note, // optional
         } = req.body;
-        console.log(req.body);
 
         // Kiểm tra tất cả các trường bắt buộc
         if (!customerID || !doctorID || !doctorName || !usedService || !appointmentID || !diagnosis || !result) {
@@ -63,7 +62,7 @@ const createMedicalRecord = async (req, res) => {
 
         // Kiểm tra các dịch vụ sử dụng
         for (const item of usedService) {
-            if (!item.service ) {
+            if (!item.service) {
                 return res.status(400).json({message: "'service' fields in usedService are required."});
             }
 
@@ -75,17 +74,16 @@ const createMedicalRecord = async (req, res) => {
 
             // Kiểm tra 'for' liên kết với Tooth hoặc Jaw dựa trên unit
             if (service.unit === 'tooth') {
-                const tooth = await Tooth.findOne({ name: item.for });
+                const tooth = await Tooth.findOne({name: item.for});
                 if (!tooth) {
-                    return res.status(404).json({ message: `Tooth with name ${item.for} not found.` });
+                    return res.status(404).json({message: `Tooth with name ${item.for} not found.`});
                 }
             } else if (service.unit === 'jaw') {
-                const jaw = await Jaw.findOne({ name: item.for });
+                const jaw = await Jaw.findOne({name: item.for});
                 if (!jaw) {
-                    return res.status(404).json({ message: `Jaw with name ${item.for} not found.` });
+                    return res.status(404).json({message: `Jaw with name ${item.for} not found.`});
                 }
             }
-
         }
 
         // Tạo MedicalRecord
@@ -105,34 +103,44 @@ const createMedicalRecord = async (req, res) => {
 
         // Thêm ID của MedicalRecord vào Customer
         if (savedRecord) {
+            // Cập nhật trạng thái của AppointmentTicket
             await AppointmentTicket.findByIdAndUpdate(appointmentID, {
                 status: 'done',
                 doneBy: doctorName,
                 doneAt: getVietnamTimeString()
             });
-            await Customer.findByIdAndUpdate(customerID, {$push: {medicalRecords: savedRecord._id}});
+
+            // Cập nhật mảng medicalRecords trong Customer
+            await Customer.findByIdAndUpdate(customerID, {
+                $push: {medicalRecord: savedRecord._id}
+            });
+
+            // Trả về kết quả thành công
+            res.status(201).json({message: "MedicalRecord created successfully", record: savedRecord});
+        } else {
+            res.status(500).json({message: "Failed to create medical record."});
         }
-        res.status(201).json({message: "MedicalRecord created successfully", data: savedRecord});
     } catch (error) {
         console.error(error);
         res.status(500).json({message: error.message});
     }
 };
 
+
 const getMedicalRecordsByCustomerID = async (req, res) => {
-    const { customerID } = req.params;
-    const { page = 1, limit = 5 } = req.query;
+    const {customerID} = req.params;
+    const {page = 1, limit = 5} = req.query;
 
     try {
-        const records = await MedicalRecord.find({ customerID })
+        const records = await MedicalRecord.find({customerID})
             .populate('usedService.service', 'name price discount') // Populate thông tin dịch vụ
             .populate('appointmentID', 'date time') // Populate thông tin lịch hẹn
             .populate('customerID', 'name phone email') // Populate thông tin khách hàng
-            .sort({ date: -1 }) // Sắp xếp mới nhất trước
+            .sort({date: -1}) // Sắp xếp mới nhất trước
             .skip((page - 1) * limit)
             .limit(Number(limit));
 
-        const totalRecords = await MedicalRecord.countDocuments({ customerID });
+        const totalRecords = await MedicalRecord.countDocuments({customerID});
         res.status(200).json({
             records,
             currentPage: page,
@@ -141,10 +149,9 @@ const getMedicalRecordsByCustomerID = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error fetching medical records' });
+        res.status(500).json({message: 'Error fetching medical records'});
     }
 };
-
 
 
 module.exports = {getAllRecords, createMedicalRecord, getMedicalRecordsByCustomerID};

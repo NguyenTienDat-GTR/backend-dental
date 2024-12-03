@@ -129,71 +129,36 @@ const getAllServices = async (req, res) => {
 
 const updateService = async (req, res) => {
     try {
-        const {id} = req.params;
-        const {name, price, description, serviceTypeName, discount, duration, priceRange, unit, blogId} = req.body;
-
-        validateServiceData({name, price, description, serviceTypeName, discount, duration, priceRange, unit, res});
-
+        const {id} = req.params; // Lấy ID dịch vụ
+        const {price, description, priceRange, unit, discount, duration} = req.body;
+        // Tìm dịch vụ cần cập nhật
         const service = await Service.findById(id);
         if (!service) {
             return res.status(404).json({message: "Dịch vụ không tồn tại"});
         }
 
-        if (name && name !== service.name && await Service.findOne({name})) {
-            return res.status(400).json({message: "Tên dịch vụ đã tồn tại"});
-        }
+        // Cập nhật các trường được gửi (chỉ cập nhật nếu giá trị mới tồn tại)
+        service.price = price !== undefined ? price : service.price;
+        service.description = description !== undefined ? description : service.description;
+        service.priceRange = priceRange !== undefined ? priceRange : service.priceRange;
+        service.unit = unit !== undefined ? unit : service.unit;
+        service.discount = discount !== undefined ? discount : service.discount;
+        service.duration = duration !== undefined ? duration : service.duration;
 
-        service.name = name || service.name;
-        service.price = price || service.price;
-        service.description = description || service.description;
-        service.discount = discount || service.discount;
-        service.duration = duration || service.duration;
-        service.priceRange = priceRange || service.priceRange;
-        service.unit = unit || service.unit;
-
-        if (req.files) {
-            const imageUrls = getImageUrls(req.files, res);
-            service.imageUrls = imageUrls;
-        }
-
-        if (blogId !== undefined) {
-            service.blog = blogId || null; // Set to null if no blogId is provided
-        }
-
-        // Save the updated service
+        // Lưu dịch vụ sau khi cập nhật
         await service.save();
-
-        // Find and update the service type
-        const type = await ServiceType.findOne({typeName: serviceTypeName});
-        if (type && !type.serviceList.includes(service._id)) {
-            type.serviceList.push(service._id);
-            await type.save();
-        }
-
-        // Optionally, update the blog if the blogId is provided
-        if (blogId) {
-            // Assume you have a Blog model and a method to update blog
-            const blog = await Blog.findById(blogId);
-            if (!blog) {
-                return res.status(404).json({message: "Bài viết không tồn tại"});
-            }
-
-            // Update blog fields as necessary
-            blog.title = req.body.blogTitle || blog.title;
-            blog.content = req.body.blogContent || blog.content;
-
-            await blog.save();
-        }
 
         return res.status(200).json({
             message: "Cập nhật dịch vụ thành công",
-            service
+            service,
         });
     } catch (error) {
-        console.error("Error in update service", error);
-        return res.status(400).json({message: error.message});
+        console.error("Error in update service:", error);
+        return res.status(500).json({message: "Lỗi hệ thống. Vui lòng thử lại sau."});
     }
-}
+};
+
+
 const deleteService = async (req, res) => {
     try {
         const {id} = req.params;
@@ -221,6 +186,11 @@ const deleteService = async (req, res) => {
         if (type) {
             type.serviceList = type.serviceList.filter(serviceId => !serviceId.equals(service._id));
             await type.save();
+            console.log("Dịch vụ đã được xóa khỏi loại dịch vụ");
+
+        } else {
+            console.log("Không tim thấy loại dịch vụ liên kết với dịch vụ này");
+
         }
 
         return res.status(200).json({
@@ -235,23 +205,59 @@ const deleteService = async (req, res) => {
 //các dịch vụ được đặt lịch nhiều nhất dựa theo phieu dat lich
 const getTopServices = async (req, res) => {
     try {
-        // Lấy tất cả các dịch vụ
-        const services = await Service.find();
+        const {year, quarter, month} = req.query;
+
+        // Xây dựng bộ lọc
+        const filter = {};
+
+        // Lọc theo năm
+        if (year && year !== "all") {
+            filter.requestedDate = {
+                $regex: `^.*${year}.*$`, // Tìm kiếm năm trong chuỗi
+            };
+        }
+
+        // Lọc theo quý
+        if (year && year !== "all" && quarter) {
+            const quarters = {
+                "1": ["01", "02", "03"], // Quý 1: Tháng 1, 2, 3
+                "2": ["04", "05", "06"], // Quý 2: Tháng 4, 5, 6
+                "3": ["07", "08", "09"], // Quý 3: Tháng 7, 8, 9
+                "4": ["10", "11", "12"], // Quý 4: Tháng 10, 11, 12
+            };
+
+            const monthsInQuarter = quarters[quarter];
+            if (monthsInQuarter) {
+                filter.requestedDate = {
+                    $regex: `^(?:.*\\/(${monthsInQuarter.join("|")})\\/.*)${year}$`,
+                };
+            }
+        }
+
+        // Lọc theo tháng
+        if (month && year && year !== "all") {
+            filter.requestedDate = {
+                $regex: `^.*${month.padStart(2, '0')}/${year}.*$`, // Tìm tháng trong năm
+            };
+        }
+
+        // Lấy tất cả các phiếu hẹn phù hợp với bộ lọc
+        const tickets = await AppointmentTicket.find(filter);
 
         // Tạo map để lưu số lần đặt hẹn theo từng dịch vụ
         const serviceCount = {};
 
-        // Lấy tất cả phiếu hẹn
-        const tickets = await AppointmentTicket.find();
-
         // Đếm số lần đặt hẹn cho mỗi dịch vụ
         tickets.forEach(ticket => {
-            if (serviceCount[ticket.requestedService]) {// nếu đã có dịch vụ này trong map thì tăng số lần đặt lên 1
+            if (serviceCount[ticket.requestedService]) {
                 serviceCount[ticket.requestedService]++;
             } else {
-                serviceCount[ticket.requestedService] = 1;// nếu chưa có thì tạo mới và gán số lần đặt là 1
+                serviceCount[ticket.requestedService] = 1;
             }
         });
+
+        // Lấy tất cả các dịch vụ từ DB
+        const services = await Service.find();
 
         // Tạo danh sách dịch vụ với số lần đặt
         const serviceStats = services.map(service => ({
@@ -266,7 +272,7 @@ const getTopServices = async (req, res) => {
 
         return res.status(200).json({topServices});
     } catch (error) {
-        console.error("Error in get top services:", error);
+        console.error("Error in getTopServices:", error);
         return res.status(400).json({message: error.message});
     }
 };

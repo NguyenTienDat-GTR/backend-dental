@@ -4,11 +4,11 @@ const bodyParser = require("body-parser");
 require("dotenv").config();
 const port = process.env.PORT || 3000;
 const IP = process.env.IP_SERVER;
-const { io, server } = require('./socket');
+const {io, server} = require('./socket');
 const app = express();
 const cookieParser = require("cookie-parser");
 
-const { connectToMongoDB } = require("./database/connectToMongoDB");
+const {connectToMongoDB} = require("./database/connectToMongoDB");
 const employeeRoute = require("./routes/EmployeeRoute");
 const accountRoute = require("./routes/AccountRoute");
 const authRoute = require("./routes/AuthRoute");
@@ -19,7 +19,8 @@ const articleRoute = require("./routes/ArticleRoute")
 const ticketRoute = require("./routes/AppointmentTicketRoute");
 const customerRoute = require("./routes/CustomerRoute");
 const medicalRecordRoute = require("./routes/MedicalRecordRoute");
-
+const policyRoute = require("./routes/PolicyRoute");
+const invoiceRoute = require("./routes/InvoiceRoute");
 // Cấu hình CORS
 const corsOptions = {
     origin: "*", // Cho phép tất cả các domain. Thay đổi thành domain cụ thể nếu cần.
@@ -29,7 +30,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
@@ -53,4 +54,7 @@ app.use("/article", articleRoute)
 app.use("/ticket", ticketRoute);
 app.use("/customer", customerRoute);
 app.use("/medical-record", medicalRecordRoute);
+app.use("/policy", policyRoute);
+app.use("/invoice", invoiceRoute);
+
 
