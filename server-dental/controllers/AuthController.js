@@ -7,7 +7,7 @@ const generateToken = require("../utils/generateToken");
 const getUserInfo = async (username) => {
     try {
         // Tìm tài khoản theo username
-        const account = await Account.findOne({ username });
+        const account = await Account.findOne({username});
 
         if (!account) {
             throw new Error("Account not found");
@@ -19,9 +19,10 @@ const getUserInfo = async (username) => {
             role: account.role,
             createAt: account.createAt,
             createBy: account.createBy,
+            isActive: account.isActive,
         };
 
-        const employee = await Employee.findOne({ employeeID: account.username });
+        const employee = await Employee.findOne({employeeID: account.username});
 
         if (!employee) {
             throw new Error("Employee not found");
@@ -55,38 +56,77 @@ const getUserInfo = async (username) => {
 };
 
 const Login = async (req, res) => {
-    const { username, password } = req.body;
+    const {username, password} = req.body;
 
     try {
         // Kiểm tra xem username đã tồn tại chưa
-        const existAccount = await Account.findOne({ username });
+        const existAccount = await Account.findOne({username});
 
         if (!existAccount) {
-            return res.status(400).json({ message: "Tài khoản không tồn tại" });
+            return res.status(400).json({message: "Tài khoản không tồn tại"});
         }
 
         const isActive = existAccount.isActive;
         if (!isActive) {
-            return res.status(400).json({ message: "Tài khoản đã bị khóa" });
+            return res.status(400).json({message: "Tài khoản đã bị khóa"});
         }
 
         // So sánh mật khẩu
         const isMatch = await bcrypt.compare(password, existAccount.password);
 
         if (!isMatch) {
-            return res.status(400).json({ message: "Mật khẩu không chính xác" });
+            return res.status(400).json({message: "Mật khẩu không chính xác"});
         }
 
         // Tạo token
         const user = await getUserInfo(existAccount.username);
-        const token = generateToken( user,res);
+        const token = generateToken(user, res);
 
 
-        return res.status(200).json({ message: "Đăng nhập thành công", token});
+        return res.status(200).json({message: "Đăng nhập thành công", token});
     } catch (error) {
         console.error(error.message);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({message: "Internal server error"});
     }
 };
 
-module.exports = { Login };
+//hàm thay đổi mật khẩu
+const changePassword = async (req, res) => {
+    const { username, oldPassword, newPassword } = req.body;
+
+    // Kiểm tra xem các trường có đầy đủ không
+    if (!username || !oldPassword || !newPassword) {
+        return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
+    }
+
+    try {
+        // Tìm tài khoản theo username
+        const account = await Account.findOne({ username });
+
+        if (!account) {
+            return res.status(404).json({ message: "Tài khoản không tồn tại" });
+        }
+
+        // Kiểm tra mật khẩu cũ
+        const isMatch = await bcrypt.compare(oldPassword, account.password);
+
+        if (!isMatch) {
+            return res.status(400).json({ message: "Mật khẩu cũ không chính xác" });
+        }
+
+        // Tạo mật khẩu mới đã được hash
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Cập nhật mật khẩu trong database
+        account.password = hashedPassword;
+        await account.save();
+
+        return res.status(200).json({ message: "Thay đổi mật khẩu thành công" });
+    } catch (error) {
+        console.error(error.message);
+        return res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
+    }
+};
+
+module.exports = {Login, changePassword};

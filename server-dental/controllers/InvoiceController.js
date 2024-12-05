@@ -230,8 +230,6 @@ const confirmPayment = async (req, res) => {
         invoice.paidBy = paidBy;
         invoice.paidAt = getVietnamTimeString();
 
-        // Kiểm tra và log medicalRecordID
-        console.log("invoice.medicalRecordID:", invoice.medicalRecordID);
 
         // Tìm kiếm MedicalRecord từ invoice.medicalRecordID
         const medicalRecord = await MedicalRecord.findById(invoice.medicalRecordID);

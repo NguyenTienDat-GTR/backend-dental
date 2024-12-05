@@ -89,12 +89,6 @@ const appointmentTicketSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
-    concern: [
-        {
-            type: String,
-            default: ""
-        }
-    ],
 });
 
 // Đặt unique index

@@ -269,7 +269,6 @@ const checkDoctorAvailability = async (appointmentRequest, res) => {
     return result;
 };
 
-
 const getListDoctorAvailability = async (req, res) => {
     try {
         const {id} = req.params;
@@ -458,7 +457,7 @@ const responseRequest = async (req, res) => {
             request.rejectBy = rejectBy;
 
             await request.save();
-            await sendResponsAppointmentRequest(request.customerEmail, request.customerName, status, request.appointmentDate, request.appointmentTime, request.rejectBy, request.reasonReject, null);
+            await sendResponseAppointmentRequest(request.customerEmail, request.customerName, status, request.appointmentDate, request.appointmentTime, request.rejectBy, request.reasonReject, null);
             io.emit('response');
             return res.status(200).json({message: "Xử lý yêu cầu thành công! Đã từ chối!", request})
         }

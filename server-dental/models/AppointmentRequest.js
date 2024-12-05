@@ -49,11 +49,6 @@ const AppointmentRequest = new mongoose.Schema({
     note: {
         type: String,
     },
-    concern: [
-        {
-            type: String,
-        }
-    ],
     status: {
         type: String,
         enum: ["pending", "accepted", "rejected"],

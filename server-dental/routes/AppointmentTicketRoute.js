@@ -11,17 +11,19 @@ const {
     cancelTicket,
     confirmCustomerIsArrived,
     getTopDoctor,
-    appointmentSumary
+    appointmentSumary,
+    getTimeOfDoctor
 } = require("../controllers/AppointmentTicketController");
 
 router.get("/all", authMiddleware(["admin", "employee"]), getAllAppointmentTickets);
 router.get("/getByDoctor/:doctorId", authMiddleware(["doctor"]), getAppointmentTicketsByDoctorId);
 router.get("/getById/:id", authMiddleware(["admin", "employee", "doctor"]), getAppointmentTicketById);
 router.post("/create", createAppointmentTicket);
-router.get("/getAvailableDoctors", getAvailableDoctors);
-router.put("/cancelTicket/:id",authMiddleware(["admin", "employee"]), cancelTicket);
+router.get("/getAvailableDoctors",  getAvailableDoctors);
+router.put("/cancelTicket/:id", authMiddleware(["admin", "employee"]), cancelTicket);
 router.put("/confirmCustomerIsArrived/:id", authMiddleware(["admin", "employee"]), confirmCustomerIsArrived);
-router.get("/getTopDoctor",authMiddleware(["admin"]), getTopDoctor);
-router.get("/appointmentSumary",authMiddleware(["admin"]), appointmentSumary);
+router.get("/getTopDoctor", authMiddleware(["admin"]), getTopDoctor);
+router.get("/appointmentSumary", authMiddleware(["admin"]), appointmentSumary);
+router.get("/getTimeOfDoctor", getTimeOfDoctor)
 
 module.exports = router;
