@@ -404,6 +404,7 @@ const getAvailableDoctors = async (req, res) => {
     }
 };
 
+// lấy thời gian làm việc của bác sĩ để khacách hàng đặt lịch
 const getTimeOfDoctor = async (req, res) => {
     try {
         const startDate = moment(); // Ngày hiện tại
@@ -444,8 +445,12 @@ const getTimeOfDoctor = async (req, res) => {
                     }
                 });
 
-                // Lọc ra các timeSlots có trong availableTimeSlots
-                timeSlots = timeSlots.filter((slot) => availableTimeSlots.includes(slot));
+                // Lọc ra các timeSlots có trong availableTimeSlots và lớn hơn 2 giờ so với hiện tại
+                timeSlots = timeSlots.filter((slot) => {
+                    const slotTime = moment(`${currentDay.format("YYYY-MM-DD")} ${slot}`, "YYYY-MM-DD HH:mm");
+                    const twoHoursLater = moment().add(2, "hours");
+                    return availableTimeSlots.includes(slot) && slotTime.isAfter(twoHoursLater);
+                });
 
                 // Lưu thời gian rảnh trong ngày
                 freeTimes[currentDay.format("DD/MM/YYYY")] = timeSlots;
@@ -463,6 +468,116 @@ const getTimeOfDoctor = async (req, res) => {
         return res.status(200).json(doctorAvailability);
     } catch (error) {
         console.error("Error in getAvailableDoctors:", error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+// lấy thơ gian rảnh của bác sĩ cho khaách hàng offline tới phòng khám
+// không có cách 2 tiếng
+const getAvailableDoctorOffline = async (req, res) => {
+    try {
+        const startDate = moment(); // Ngày hiện tại
+        const endDate = moment().add(7, "days"); // Sau 7 ngày
+        const availableTimeSlots = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+        const currentTime = moment();
+
+        // Lấy danh sách bác sĩ đang làm việc
+        const doctors = await Employee.find({
+            position: "doctor",
+            isWorking: true
+        }).select("employeeID employeeName workingTime urlAvatar gender");
+
+        // Lấy danh sách phiếu hẹn trong 7 ngày (so sánh với requestedDate dạng chuỗi)
+        const startDateString = startDate.format("DD/MM/YYYY");
+        const endDateString = endDate.format("DD/MM/YYYY");
+
+        const appointmentTickets = await AppointmentTicket.find({
+            requestedDate: {
+                $gte: startDateString,
+                $lte: endDateString
+            },
+            status: { $in: ["waiting", "cancelled"] }
+        });
+
+        const doctorAvailability = doctors.map(doctor => {
+            const freeTimes = {}; // Object lưu thời gian rảnh theo ngày
+
+            // Duyệt qua từng ngày trong 7 ngày tới
+            for (let i = 0; i <= 7; i++) {
+                const currentDay = startDate.clone().add(i, "days");
+                const currentDayString = currentDay.format("DD/MM/YYYY");
+                const currentDayName = currentDay.format("dddd");
+
+                // Kiểm tra bác sĩ làm việc vào ngày này
+                const workingDay = doctor.workingTime.find(w => w.day === currentDayName);
+
+                if (!workingDay) continue;
+
+                let timeSlots = [];
+
+                // Phân tách các giờ trong timeSlots từ giờ làm việc của bác sĩ
+                workingDay.timeSlots.forEach(slot => {
+                    const [start, end] = slot.split(" - ");
+                    let startTime = moment(start, "HH:mm");
+                    let endTime = moment(end, "HH:mm");
+
+                    // Lặp qua từng giờ trong khoảng thời gian và thêm vào timeSlots
+                    while (startTime.isBefore(endTime)) {
+                        timeSlots.push(startTime.format("HH:mm"));
+                        startTime = startTime.add(1, "hour");
+                    }
+                });
+
+                // Lọc ra các timeSlots có trong availableTimeSlots
+                timeSlots = timeSlots.filter(slot => availableTimeSlots.includes(slot));
+
+                // Lọc các timeSlots trùng với phiếu hẹn của bác sĩ trong ngày
+                const appointments = appointmentTickets.filter(ticket =>
+                    ticket.doctorId === doctor.employeeID &&
+                    ticket.requestedDate === currentDayString // Kiểm tra ngày trùng khớp
+                );
+
+                // Lọc các giờ trùng với phiếu hẹn
+                appointments.forEach(ticket => {
+                    if (ticket.status === "cancelled") return;
+
+                    const appointmentStart = moment(ticket.requestedTime, "HH:mm");
+                    const appointmentEnd = moment(ticket.endTime, "HH:mm");
+
+                    // Loại bỏ các giờ nằm trong khoảng thời gian của phiếu hẹn
+                    timeSlots = timeSlots.filter(slot => {
+                        const currentTime = moment(slot, "HH:mm");
+                        return !(
+                            currentTime.isSame(appointmentStart, 'minute') || // Loại bỏ giờ bắt đầu của phiếu hẹn
+                            currentTime.isBetween(appointmentStart, appointmentEnd, null, '[)') // Loại bỏ các giờ trong khoảng thời gian phiếu hẹn
+                        );
+                    });
+                });
+
+                // Nếu là ngày hôm nay, chỉ lấy các giờ lớn hơn giờ hiện tại
+                if (currentDay.isSame(moment(), 'day')) {
+                    timeSlots = timeSlots.filter(slot => {
+                        const slotTime = moment(slot, "HH:mm");
+                        return slotTime.isAfter(currentTime);
+                    });
+                }
+
+                // Lưu thời gian rảnh trong ngày
+                freeTimes[currentDayString] = timeSlots;
+            }
+
+            return {
+                doctorId: doctor.employeeID,
+                doctorName: doctor.employeeName,
+                doctorAvatar: doctor.urlAvatar,
+                doctorGender: doctor.gender,
+                availableTimes: freeTimes,
+            };
+        });
+
+        return res.status(200).json(doctorAvailability);
+    } catch (error) {
+        console.log("Error in getAvailableDoctors offline:", error);
         return res.status(500).json({ message: error.message });
     }
 };
@@ -865,4 +980,5 @@ module.exports = {
     getTopDoctor,
     appointmentSumary,
     getTimeOfDoctor,
+    getAvailableDoctorOffline,
 };

@@ -37,7 +37,6 @@ const createAppointmentRequest = async (req, res) => {
             service,
             doctorId,
             note,
-            concern,
             createBy,
             editBy,
             gender
@@ -61,9 +60,6 @@ const createAppointmentRequest = async (req, res) => {
             return res.status(400).json({message: "Email không hợp lệ"});
         }
 
-        if (concern && concern.length > 2) {
-            return res.status(400).json({message: "Chỉ được chọn tối đa 2 vấn đề"});
-        }
 
         const existingDoctor = await Employee.findOne({employeeID: doctorId}).select("employeeID employeeName employeePhone employeeEmail");
 
@@ -99,18 +95,20 @@ const createAppointmentRequest = async (req, res) => {
             service,
             doctorId,
             note,
-            concern,
             createBy: createBy || "customer",
             editBy,
             gender,
         });
 
         await newAppointmentRequest.save();
-        await sendCreateAppointmentRequest(customerEmail, customerName, appointmentDate, appointmentTime, service, existingDoctor.employeeName, note, concern);
+        await sendCreateAppointmentRequest(customerEmail, customerName, appointmentDate, appointmentTime, service, existingDoctor.employeeName, note);
         // Gửi thông báo đến tất cả client
         io.emit('newAppointmentRequest', newAppointmentRequest);
 
-        res.status(201).json({message: "Tạo yêu cầu thành công", newRequest: newAppointmentRequest});
+        res.status(201).json({
+            message: "Tạo yêu cầu thành công. Chúng tôi sẽ liên hệ với bận sớm nhất có thể!",
+            newRequest: newAppointmentRequest
+        });
 
     } catch (error) {
         console.error("Error in create appointment request", error);
@@ -120,7 +118,7 @@ const createAppointmentRequest = async (req, res) => {
 
 const getAllRequest = async (req, res) => {
     try {
-        const { year, quarter, month } = req.query;
+        const {year, quarter, month} = req.query;
 
         // Xây dựng bộ lọc cho AppointmentRequest
         const filter = {};
@@ -162,10 +160,10 @@ const getAllRequest = async (req, res) => {
 
         return res
             .status(200)
-            .json({ request, message: "Lấy danh sách thành công" });
+            .json({request, message: "Lấy danh sách thành công"});
     } catch (error) {
         console.error("Error in get all appointment request", error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({message: "Internal server error"});
     }
 };
 
@@ -303,20 +301,20 @@ const getRequestById = async (req, res) => {
 
 const changeRequest = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { appointmentDate, appointmentTime, service, note, editBy, doctorId } = req.body;
+        const {id} = req.params;
+        const {appointmentDate, appointmentTime, service, note, editBy, doctorId} = req.body;
         const parsedEditBy = JSON.parse(editBy);
 
         console.log(appointmentDate, appointmentTime, service, doctorId, note, editBy);
 
         if (!appointmentDate || !appointmentTime || !service) {
-            return res.status(400).json({ message: "Cần điền đầy đủ thông tin" });
+            return res.status(400).json({message: "Cần điền đầy đủ thông tin"});
         }
 
         const appointmentRequest = await AppointmentRequest.findById(id);
 
         if (!appointmentRequest) {
-            return res.status(404).json({ message: "Yêu cầu không tồn tại" });
+            return res.status(404).json({message: "Yêu cầu không tồn tại"});
         }
 
         // Chuyển đổi appointmentDate sang định dạng DD/MM/YYYY
@@ -332,11 +330,11 @@ const changeRequest = async (req, res) => {
         const oneMonthLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         if (appointmentDateTime <= twoHoursLater) {
-            return res.status(400).json({ message: "Thời gian hẹn phải lớn hơn 2 giờ so với thời gian hiện tại." });
+            return res.status(400).json({message: "Thời gian hẹn phải lớn hơn 2 giờ so với thời gian hiện tại."});
         }
 
         if (appointmentDateTime > oneMonthLater) {
-            return res.status(400).json({ message: "Thời gian hẹn không được vượt quá 7 ngày kể từ thời điểm hiện tại." });
+            return res.status(400).json({message: "Thời gian hẹn không được vượt quá 7 ngày kể từ thời điểm hiện tại."});
         }
 
         // Chuẩn bị dữ liệu để cập nhật
@@ -349,12 +347,12 @@ const changeRequest = async (req, res) => {
             editBy: parsedEditBy,
         };
 
-        const updatedRequest = await AppointmentRequest.findByIdAndUpdate(id, updated, { new: true });
+        const updatedRequest = await AppointmentRequest.findByIdAndUpdate(id, updated, {new: true});
 
-        res.status(200).json({ message: "Cập nhật thành công", updatedRequest });
+        res.status(200).json({message: "Cập nhật thành công", updatedRequest});
     } catch (error) {
         console.error("Error in change appointment request", error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({message: "Internal server error"});
     }
 };
 
@@ -423,8 +421,8 @@ const responseRequest = async (req, res) => {
             //kiểm tra trùng lịch
             const isDuplicate = await AppointmentTicket.findOne({
                 doctorId: doctorID,
-                requestedDate:request.appointmentDate,
-                requestedTime:request.appointmentTime,
+                requestedDate: request.appointmentDate,
+                requestedTime: request.appointmentTime,
             });
 
             if (isDuplicate) {

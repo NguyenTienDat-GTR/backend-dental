@@ -50,7 +50,7 @@ const sendPasswordResetEmail = async (email, resetLink) => {
         console.log("Email đã được gửi:", info.response);
     });
 };
-const sendCreateAppointmentRequest = async (email, name, date, time, service,doctor, note, concern) => {
+const sendCreateAppointmentRequest = async (email, name, date, time, service,doctor, note) => {
     const transporter = createTransporter();
     const message = {
         from: USER_MAIL,

@@ -21,6 +21,7 @@ const customerRoute = require("./routes/CustomerRoute");
 const medicalRecordRoute = require("./routes/MedicalRecordRoute");
 const policyRoute = require("./routes/PolicyRoute");
 const invoiceRoute = require("./routes/InvoiceRoute");
+const knowledgeRoute = require("./routes/KnowledgeRoute")
 // Cấu hình CORS
 const corsOptions = {
     origin: "*", // Cho phép tất cả các domain. Thay đổi thành domain cụ thể nếu cần.
@@ -56,5 +57,6 @@ app.use("/customer", customerRoute);
 app.use("/medical-record", medicalRecordRoute);
 app.use("/policy", policyRoute);
 app.use("/invoice", invoiceRoute);
+app.use("/knowledge", knowledgeRoute);
 
 
