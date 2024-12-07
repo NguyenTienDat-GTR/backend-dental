@@ -57,6 +57,6 @@ app.use("/customer", customerRoute);
 app.use("/medical-record", medicalRecordRoute);
 app.use("/policy", policyRoute);
 app.use("/invoice", invoiceRoute);
-app.use("/knowledge", knowledgeRoute);
+app.use("/knowledge", knowledgeRoute)
 
 

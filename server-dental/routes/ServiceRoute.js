@@ -17,7 +17,7 @@ router.post("/create", authMiddleware(["admin"]), uploadAvatarMiddleware("servic
 router.get("/getById/:id", getServiceById);
 router.get("/getAll", getAllServices);
 router.delete("/delete/:id", authMiddleware(["admin"]), deleteService);
-router.get("/topServices", authMiddleware(["admin", "employee"]), getTopServices);
+router.get("/topServices", authMiddleware(["admin", "employee","doctor"]), getTopServices);
 router.get("/getTooth", getTooth);
 router.get("/getJaw", getJaw);
 router.put("/update/:id", authMiddleware(["admin"]), updateService);

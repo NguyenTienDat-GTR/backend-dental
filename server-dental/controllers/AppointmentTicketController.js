@@ -134,7 +134,7 @@ const createAppointmentTicket = async (req, res) => {
         // Lưu hoặc tìm thông tin khách hàng
         let savedCustomer = null;
 
-        if(isNewCustomer){
+        if (isNewCustomer) {
             if (customerEmail) {
                 savedCustomer = await Customer.findOne({
                     $or: [
@@ -315,7 +315,7 @@ const getAvailableDoctors = async (req, res) => {
                 $gte: startDateString,
                 $lte: endDateString
             },
-            status: { $in: ["waiting", "cancelled"] }
+            status: {$in: ["waiting", "cancelled"]}
         });
 
         const doctorAvailability = doctors.map(doctor => {
@@ -400,7 +400,7 @@ const getAvailableDoctors = async (req, res) => {
         return res.status(200).json(doctorAvailability);
     } catch (error) {
         console.log("Error in getAvailableDoctors:", error);
-        return res.status(500).json({ message: error.message });
+        return res.status(500).json({message: error.message});
     }
 };
 
@@ -468,7 +468,7 @@ const getTimeOfDoctor = async (req, res) => {
         return res.status(200).json(doctorAvailability);
     } catch (error) {
         console.error("Error in getAvailableDoctors:", error);
-        return res.status(500).json({ message: error.message });
+        return res.status(500).json({message: error.message});
     }
 };
 
@@ -496,7 +496,7 @@ const getAvailableDoctorOffline = async (req, res) => {
                 $gte: startDateString,
                 $lte: endDateString
             },
-            status: { $in: ["waiting", "cancelled"] }
+            status: {$in: ["waiting", "cancelled"]}
         });
 
         const doctorAvailability = doctors.map(doctor => {
@@ -578,7 +578,7 @@ const getAvailableDoctorOffline = async (req, res) => {
         return res.status(200).json(doctorAvailability);
     } catch (error) {
         console.log("Error in getAvailableDoctors offline:", error);
-        return res.status(500).json({ message: error.message });
+        return res.status(500).json({message: error.message});
     }
 };
 
@@ -909,10 +909,14 @@ const getTopDoctor = async (req, res) => {
 
 const appointmentSumary = async (req, res) => {
     try {
-        const {year, quarter, month} = req.query;
+        const {year, quarter, month, doctorId} = req.query;
 
         // Xây dựng bộ lọc cho AppointmentTicket
         const filter = {};
+
+        if (doctorId) {
+            filter.doctorId = doctorId;
+        }
 
         // Lọc theo năm
         if (year && year !== "all") {
@@ -967,7 +971,61 @@ const appointmentSumary = async (req, res) => {
     }
 };
 
+// lấy lịch hẹn đã hoàn thành của bac sĩ
+const getTicketDoneOfDoctor = async (req, res) => {
+    try {
+        const {year, quarter, month, doctorId} = req.query;
 
+        // Tạo bộ lọc
+        const filter = {
+            status: "done", // Chỉ lấy các lịch hẹn có trạng thái "done",
+            doctorId: doctorId ? doctorId : null
+        };
+
+
+        // Lọc theo năm
+        if (year && year !== "all") {
+            filter.doneAt = {
+                $regex: `\\d{2}/\\d{2}/${year} \\d{2}:\\d{2}:\\d{2}`,
+            };
+        }
+
+        // Lọc theo quý
+        if (quarter && year && year !== "all") {
+            const quarters = {
+                "1": ["01", "02", "03"], // Quý 1: Tháng 1, 2, 3
+                "2": ["04", "05", "06"], // Quý 2: Tháng 4, 5, 6
+                "3": ["07", "08", "09"], // Quý 3: Tháng 7, 8, 9
+                "4": ["10", "11", "12"], // Quý 4: Tháng 10, 11, 12
+            };
+
+            const monthsInQuarter = quarters[quarter];
+            if (monthsInQuarter) {
+                filter.doneAt = {
+                    $regex: `\\d{2}/(${monthsInQuarter.join("|")})/${year} \\d{2}:\\d{2}:\\d{2}`,
+                };
+            }
+        }
+
+        // Lọc theo tháng và năm
+        if (month && year && year !== "all") {
+            filter.doneAt = {
+                $regex: `\\d{2}/${month.padStart(2, "0")}/${year} \\d{2}:\\d{2}:\\d{2}`,
+            };
+        }
+
+        // Lấy dữ liệu từ cơ sở dữ liệu với bộ lọc
+        const appointmentTickets = await AppointmentTicket.find(filter).populate({
+            path: "customer",
+            select: "_id name phone email gender",
+        });
+
+        res.status(200).json({appointmentTickets});
+    } catch (error) {
+        console.log("Error in getTicketDoneOfDoctor:", error);
+        res.status(500).json({message: error.message});
+    }
+};
 
 module.exports = {
     getAllAppointmentTickets,
@@ -981,4 +1039,5 @@ module.exports = {
     appointmentSumary,
     getTimeOfDoctor,
     getAvailableDoctorOffline,
+    getTicketDoneOfDoctor
 };

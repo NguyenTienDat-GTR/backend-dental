@@ -16,7 +16,43 @@ const getVietnamTimeString = () => {
 
 const getAllCustomers = async (req, res) => {
     try {
-        const customers = await Customer.find();
+        const {year, quarter, month} = req.query;
+
+        // Xây dựng bộ lọc cho Invoice
+        const filter = {};
+
+        // Lọc theo năm
+        if (year && year !== "all") {
+            filter.createdAt = {
+                $regex: `.*${year} .*`,  // Tìm kiếm năm trong chuỗi dd/mm/yyyy hh:mm:ss
+            };
+        }
+
+        // Lọc theo quý
+        if (year && year !== "all" && quarter) {
+            const quarters = {
+                "1": ["01", "02", "03"],  // Quý 1 có các tháng 01, 02, 03
+                "2": ["04", "05", "06"],  // Quý 2 có các tháng 04, 05, 06
+                "3": ["07", "08", "09"],  // Quý 3 có các tháng 07, 08, 09
+                "4": ["10", "11", "12"],  // Quý 4 có các tháng 10, 11, 12
+            };
+
+            const monthsInQuarter = quarters[quarter];
+
+            if (monthsInQuarter) {
+                filter.createdAt = {
+                    $regex: `.*(${monthsInQuarter.join("|")})/${year} .*`,  // Tìm các tháng trong quý và năm
+                };
+            }
+        }
+
+        // Lọc theo tháng và năm
+        if (month && year && year !== "all") {
+            filter.createdAt = {
+                $regex: `.*${month.padStart(2, '0')}/${year} .*`,  // Tìm tháng trong năm (dd/mm/yyyy hh:mm:ss)
+            };
+        }
+        const customers = await Customer.find(filter);
         res.json(customers);
     } catch (error) {
         res.status(500).json({message: error.message});

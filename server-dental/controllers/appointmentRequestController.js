@@ -118,10 +118,14 @@ const createAppointmentRequest = async (req, res) => {
 
 const getAllRequest = async (req, res) => {
     try {
-        const {year, quarter, month} = req.query;
+        const {year, quarter, month, doctorId} = req.query;
 
         // Xây dựng bộ lọc cho AppointmentRequest
         const filter = {};
+
+        if (doctorId) {
+            filter.doctorId = doctorId;
+        }
 
         // Lọc theo năm
         if (year && year !== "all") {
@@ -166,7 +170,6 @@ const getAllRequest = async (req, res) => {
         return res.status(500).json({message: "Internal server error"});
     }
 };
-
 
 // Hàm kiểm tra lịch bác sĩ
 const checkDoctorAvailability = async (appointmentRequest, res) => {
@@ -465,7 +468,149 @@ const responseRequest = async (req, res) => {
         return res.status(500).json({message: "Error response request"})
     }
 }
-//
+
+//lấy các yêu cầu bị từ chối
+const getRequestRejected = async (req, res) => {
+    try {
+        const {year, quarter, month, rejectBy} = req.query;
+
+        // Xây dựng bộ lọc
+        const filter = {
+            status: "rejected", // Chỉ lấy các yêu cầu bị từ chối
+        };
+
+        // Lọc theo rejectBy (nếu có)
+        if (rejectBy) {
+            filter.rejectBy = rejectBy;
+        }
+
+        // Lọc theo năm
+        if (year && year !== "all") {
+            const yearRegex = `${year}`;
+            filter.createAt = {
+                $regex: yearRegex, // Tìm kiếm năm trong chuỗi ngày giờ
+            };
+        }
+
+        // Lọc theo quý
+        if (year && year !== "all" && quarter) {
+            const quarters = {
+                "1": ["01", "02", "03"], // Quý 1
+                "2": ["04", "05", "06"], // Quý 2
+                "3": ["07", "08", "09"], // Quý 3
+                "4": ["10", "11", "12"], // Quý 4
+            };
+
+            const monthsInQuarter = quarters[quarter];
+            if (monthsInQuarter) {
+                filter.createAt = {
+                    $regex: `(${monthsInQuarter.join("|")})/${year}`, // Tìm các tháng trong quý và năm
+                };
+            }
+        }
+
+        // Lọc theo tháng và năm
+        if (month && year && year !== "all") {
+            const monthRegex = `${month.padStart(2, "0")}/${year}`;
+            filter.createAt = {
+                $regex: monthRegex, // Tìm tháng trong năm
+            };
+        }
+
+        // Lấy danh sách yêu cầu từ cơ sở dữ liệu
+        const requests = await AppointmentRequest.find(filter);
+
+        // Trả về dữ liệu
+        return res.status(200).json({
+            requests,
+            message: "Lấy danh sách thành công",
+        });
+    } catch (error) {
+        console.error("Error in getRequestRejected:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+        });
+    }
+};
+
+const getRequestCountsByUser = async (req, res) => {
+    try {
+        const {year, quarter, month, rejectBy} = req.query;
+
+        if (!rejectBy) {
+            return res.status(400).json({
+                message: "Vui lòng cung cấp giá trị 'rejectBy' để lọc dữ liệu.",
+            });
+        }
+
+        // Xây dựng các bộ lọc chung cho cả accepted và rejected
+        const baseFilter = {};
+
+        // Lọc theo năm
+        if (year && year !== "all") {
+            baseFilter.createAt = {
+                $regex: `${year}`, // Lọc theo năm
+            };
+        }
+
+        // Lọc theo quý
+        if (year && year !== "all" && quarter) {
+            const quarters = {
+                "1": ["01", "02", "03"],
+                "2": ["04", "05", "06"],
+                "3": ["07", "08", "09"],
+                "4": ["10", "11", "12"],
+            };
+            const monthsInQuarter = quarters[quarter];
+            if (monthsInQuarter) {
+                baseFilter.createAt = {
+                    $regex: `(${monthsInQuarter.join("|")})/${year}`, // Lọc theo tháng trong quý và năm
+                };
+            }
+        }
+
+        // Lọc theo tháng
+        if (month && year && year !== "all") {
+            const monthRegex = `${month.padStart(2, "0")}/${year}`;
+            baseFilter.createAt = {
+                $regex: monthRegex, // Lọc theo tháng và năm
+            };
+        }
+
+        // Bộ lọc cho các yêu cầu bị rejected
+        const rejectedFilter = {
+            ...baseFilter,
+            status: "rejected",
+            rejectBy: rejectBy ? rejectBy : null,
+        };
+
+        // Bộ lọc cho các yêu cầu được accepted
+        const acceptedFilter = {
+            ...baseFilter,
+            status: "accepted",
+            acceptBy: rejectBy ? rejectBy : null,
+        };
+
+        // Đếm số lượng yêu cầu rejected và accepted
+        const [rejectedCount, acceptedCount] = await Promise.all([
+            AppointmentRequest.countDocuments(rejectedFilter),
+            AppointmentRequest.countDocuments(acceptedFilter),
+        ]);
+
+        // Trả về kết quả
+        return res.status(200).json({
+            rejectedCount,
+            acceptedCount,
+            message: `Số lượng yêu cầu rejected và accepted bởi ${rejectBy} được lọc thành công.`,
+        });
+    } catch (error) {
+        console.error("Error in getRequestCountsByUser:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+        });
+    }
+};
+
 
 module.exports = {
     createAppointmentRequest,
@@ -474,5 +619,7 @@ module.exports = {
     changeRequest,
     getRequestById,
     responseRequest,
-    checkDoctorAvailability
+    checkDoctorAvailability,
+    getRequestRejected,
+    getRequestCountsByUser
 };
