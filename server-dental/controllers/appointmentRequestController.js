@@ -611,6 +611,69 @@ const getRequestCountsByUser = async (req, res) => {
     }
 };
 
+//lấy các yêu cầuđược chấp nhận
+const getRequestAccepted = async (req, res) => {
+    try {
+        const {year, quarter, month, rejectBy} = req.query;
+
+        // Xây dựng bộ lọc
+        const filter = {
+            status: "accepted", // Chỉ lấy các yêu cầu được chấp nhận
+        };
+
+        // Lọc theo rejectBy (nếu có)
+        if (rejectBy) {
+            filter.acceptBy = rejectBy;
+        }
+
+        // Lọc theo năm
+        if (year && year !== "all") {
+            const yearRegex = `${year}`;
+            filter.createAt = {
+                $regex: yearRegex, // Tìm kiếm năm trong chuỗi ngày giờ
+            };
+        }
+
+        // Lọc theo quý
+        if (year && year !== "all" && quarter) {
+            const quarters = {
+                "1": ["01", "02", "03"], // Quý 1
+                "2": ["04", "05", "06"], // Quý 2
+                "3": ["07", "08", "09"], // Quý 3
+                "4": ["10", "11", "12"], // Quý 4
+            };
+
+            const monthsInQuarter = quarters[quarter];
+            if (monthsInQuarter) {
+                filter.createAt = {
+                    $regex: `(${monthsInQuarter.join("|")})/${year}`, // Tìm các tháng trong quý và năm
+                };
+            }
+        }
+
+        // Lọc theo tháng và năm
+        if (month && year && year !== "all") {
+            const monthRegex = `${month.padStart(2, "0")}/${year}`;
+            filter.createAt = {
+                $regex: monthRegex, // Tìm tháng trong năm
+            };
+        }
+
+        // Lấy danh sách yêu cầu từ cơ sở dữ liệu
+        const requests = await AppointmentRequest.find(filter);
+
+        // Trả về dữ liệu
+        return res.status(200).json({
+            requests,
+            message: "Lấy danh sách thành công",
+        });
+    } catch (error) {
+        console.error("Error in getRequestAccepted:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+        });
+    }
+};
 
 module.exports = {
     createAppointmentRequest,
@@ -621,5 +684,5 @@ module.exports = {
     responseRequest,
     checkDoctorAvailability,
     getRequestRejected,
-    getRequestCountsByUser
+    getRequestCountsByUser,getRequestAccepted
 };

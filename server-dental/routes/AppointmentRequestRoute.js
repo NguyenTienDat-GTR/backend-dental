@@ -9,7 +9,8 @@ const {
     getRequestById,
     responseRequest,
     getRequestRejected,
-    getRequestCountsByUser
+    getRequestCountsByUser,
+    getRequestAccepted
 } = require("../controllers/appointmentRequestController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
@@ -25,5 +26,6 @@ router.get("/getById/:id", authMiddleware(["admin", "employee"]), getRequestById
 router.put("/response/:id", authMiddleware(["admin", "employee"]), responseRequest);
 router.get("/rejected", authMiddleware(["admin", "employee"]), getRequestRejected)
 router.get("/count-by-user", authMiddleware(["admin", "employee"]), getRequestCountsByUser)
+router.get("/accepted", authMiddleware(["admin", "employee"]), getRequestAccepted)
 
 module.exports = router;

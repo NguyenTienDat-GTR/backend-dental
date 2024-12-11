@@ -126,21 +126,23 @@ const createMedicalRecord = async (req, res) => {
     }
 };
 
-
 const getMedicalRecordsByCustomerID = async (req, res) => {
-    const {customerID} = req.params;
-    const {page = 1, limit = 5} = req.query;
+    const { customerID } = req.params;
+    let { page = 1, limit = 5 } = req.query;
+
+    page = Math.max(parseInt(page, 10), 1); // Đảm bảo page là số nguyên dương
+    limit = Math.max(parseInt(limit, 10), 1); // Đảm bảo limit là số nguyên dương
 
     try {
-        const records = await MedicalRecord.find({customerID})
+        const records = await MedicalRecord.find({ customerID })
             .populate('usedService.service', 'name price discount') // Populate thông tin dịch vụ
             .populate('appointmentID', 'date time') // Populate thông tin lịch hẹn
             .populate('customerID', 'name phone email') // Populate thông tin khách hàng
-            .sort({date: -1}) // Sắp xếp mới nhất trước
+            .sort({ date: -1 }) // Sắp xếp mới nhất trước
             .skip((page - 1) * limit)
-            .limit(Number(limit));
+            .limit(limit);
 
-        const totalRecords = await MedicalRecord.countDocuments({customerID});
+        const totalRecords = await MedicalRecord.countDocuments({ customerID });
         res.status(200).json({
             records,
             currentPage: page,
@@ -149,9 +151,10 @@ const getMedicalRecordsByCustomerID = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({message: 'Error fetching medical records'});
+        res.status(500).json({ message: 'Error fetching medical records' });
     }
 };
+
 
 
 module.exports = {getAllRecords, createMedicalRecord, getMedicalRecordsByCustomerID};

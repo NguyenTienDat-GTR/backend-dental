@@ -206,18 +206,6 @@ const createAppointmentTicket = async (req, res) => {
 
         const newTicket = await ticket.save({session});
 
-        // Gửi email xác nhận nếu cần
-        if (newTicket && customerEmail) {
-            await sendResponseAppointmentRequest(
-                savedCustomer.email,
-                savedCustomer.name,
-                requestedDate,
-                requestedTime,
-                doctor.employeeName,
-                service
-            );
-        }
-
         // Commit transaction
         await session.commitTransaction();
         session.endSession();
