@@ -49,7 +49,7 @@ const checkValidDateTime = (date, time, res) => {
 
     // Kiểm tra thời gian hẹn
     const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000); // Thời gian hiện tại + 2 giờ
-    const oneMonthLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // Thời gian hiện tại + 30 ngày
+    const oneMonthLater = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000); // Thời gian hiện tại + 8 ngày
 
     // Kiểm tra điều kiện
     if (appointmentDateTime <= twoHoursLater) {
@@ -57,7 +57,7 @@ const checkValidDateTime = (date, time, res) => {
     }
 
     if (appointmentDateTime > oneMonthLater) {
-        return res.status(400).json({message: "Thời gian hẹn không được vượt quá 1 tháng kể từ thời điểm hiện tại."});
+        return res.status(400).json({message: "Thời gian hẹn không được vượt quá 8 ngày kể từ thời điểm hiện tại."});
     }
 
 }
@@ -682,7 +682,7 @@ const autoCancellExpiredTickets = async () => {
             isCustomerArrived: false
         }).populate({
             path: "customer",
-            select: "_id name phone email gender",
+            select: "_id name phone email gender countCancelled",
         });
 
         const now = Date.now();
@@ -713,6 +713,10 @@ const autoCancellExpiredTickets = async () => {
                         "Hết hạn",
                         getVietnamTimeString()
                     );
+
+                    await Customer.findByIdAndUpdate(ticket.customer._id,{
+                        countCancelled: ticket.customer.countCancelled + 1,
+                    })
                 }
             } catch (error) {
                 console.error(`Failed to cancel ticket ${ticket._id}:`, error);
@@ -737,7 +741,7 @@ const cancelTicket = async (req, res) => {
     try {
         const ticket = await AppointmentTicket.findById(id).populate({
             path: "customer",
-            select: "_id name phone email gender",
+            select: "_id name phone email gender countCancelled",
         });
         ;
         if (!ticket) {
@@ -761,271 +765,278 @@ const cancelTicket = async (req, res) => {
 
         if (isCancelled) {
             await sendCancellAppointmentTicket(ticket.customer.email, ticket.customer.name, "Đã hủy", ticket.requestedDate, ticket.requestedTime, ticket.requestedService, cancelledBy, reason, getVietnamTimeString());
+
+            await Customer.findByIdAndUpdate(ticket.customer._id,{
+                countCancelled: ticket.customer.countCancelled + 1,
+            })
         }
 
-        io.emit("responseTicket");
-
-        return res.status(200).json({message: "Hủy phiếu hẹn thành công"});
-    } catch (error) {
-        console.log("error in cancel ticket", error);
-        return res.status(500).json({message: error});
-    }
-}
-
-const confirmCustomerIsArrived = async (req, res) => {
-    const {id} = req.params; // ticket id
-    const {confirmedBy} = req.body;
-
-    try {
-        const ticket = await AppointmentTicket.findById(id);
-
-        if (!ticket) {
-            return res.status(404).json({message: "Không tìm thấy phiếu hẹn"});
-        }
-
-        if (ticket.status === "cancelled") {
-            return res.status(400).json({message: "Phiếu hẹn đã bị hủy"});
-        }
-
-        if (ticket.status === "done") {
-            return res.status(400).json({message: "Phiếu hẹn đã hoàn thành"});
-        }
-
-        if (ticket.isCustomerArrived) {
-            return res.status(400).json({message: "Đã xác nhận khách hàng đã đến"});
-        }
-
-        const isConfirmed = await AppointmentTicket.updateOne({_id: id}, {
-            isCustomerArrived: true,
-            confirmedBy: confirmedBy,
-            arrivedAt: getVietnamTimeString(),
-        })
-
-        if (isConfirmed) {
             io.emit("responseTicket");
-        }
 
-        return res.status(200).json({message: "Xác nhận khách hàng đã đến thành công"});
-    } catch (error) {
-        console.log("error in confirm customer is arrived", error);
-        return res.status(500).json({message: error});
+            return res.status(200).json({message: "Hủy phiếu hẹn thành công"});
+        }
+    catch
+        (error)
+        {
+            console.log("error in cancel ticket", error);
+            return res.status(500).json({message: error});
+        }
     }
-}
+
+    const confirmCustomerIsArrived = async (req, res) => {
+        const {id} = req.params; // ticket id
+        const {confirmedBy} = req.body;
+
+        try {
+            const ticket = await AppointmentTicket.findById(id);
+
+            if (!ticket) {
+                return res.status(404).json({message: "Không tìm thấy phiếu hẹn"});
+            }
+
+            if (ticket.status === "cancelled") {
+                return res.status(400).json({message: "Phiếu hẹn đã bị hủy"});
+            }
+
+            if (ticket.status === "done") {
+                return res.status(400).json({message: "Phiếu hẹn đã hoàn thành"});
+            }
+
+            if (ticket.isCustomerArrived) {
+                return res.status(400).json({message: "Đã xác nhận khách hàng đã đến"});
+            }
+
+            const isConfirmed = await AppointmentTicket.updateOne({_id: id}, {
+                isCustomerArrived: true,
+                confirmedBy: confirmedBy,
+                arrivedAt: getVietnamTimeString(),
+            })
+
+            if (isConfirmed) {
+                io.emit("responseTicket");
+            }
+
+            return res.status(200).json({message: "Xác nhận khách hàng đã đến thành công"});
+        } catch (error) {
+            console.log("error in confirm customer is arrived", error);
+            return res.status(500).json({message: error});
+        }
+    }
 
 // lây top 3 bác sĩ có số phiếu hẹn nhiều nhất
-const getTopDoctor = async (req, res) => {
-    try {
-        const {year, quarter, month} = req.query;
+    const getTopDoctor = async (req, res) => {
+        try {
+            const {year, quarter, month} = req.query;
 
-        // Xây dựng bộ lọc cho AppointmentTicket
-        const filter = {};
+            // Xây dựng bộ lọc cho AppointmentTicket
+            const filter = {};
 
-        // Lọc theo năm
-        if (year && year !== "all") {
-            filter.requestedDate = {
-                $regex: `^.*${year}.*$`,  // Tìm kiếm năm trong chuỗi
-            };
-        }
-
-        // Lọc theo quý
-        if (year && year !== "all" && quarter) {
-            const quarters = {
-                "1": ["01", "02", "03"],  // Quý 1 có các tháng 01, 02, 03
-                "2": ["04", "05", "06"],  // Quý 2 có các tháng 04, 05, 06
-                "3": ["07", "08", "09"],  // Quý 3 có các tháng 07, 08, 09
-                "4": ["10", "11", "12"],  // Quý 4 có các tháng 10, 11, 12
-            };
-
-            const monthsInQuarter = quarters[quarter];
-
-            if (monthsInQuarter) {
+            // Lọc theo năm
+            if (year && year !== "all") {
                 filter.requestedDate = {
-                    $regex: `^(?:.*\\/(${monthsInQuarter.join("|")})\\/.*)${year}$`
+                    $regex: `^.*${year}.*$`,  // Tìm kiếm năm trong chuỗi
                 };
             }
-        }
 
-        // Lọc theo tháng và năm
-        if (month && year && year !== "all") {
-            filter.requestedDate = {
-                $regex: `^.*${month.padStart(2, '0')}/${year}.*$`, // Tìm tháng trong năm
-            };
-        }
+            // Lọc theo quý
+            if (year && year !== "all" && quarter) {
+                const quarters = {
+                    "1": ["01", "02", "03"],  // Quý 1 có các tháng 01, 02, 03
+                    "2": ["04", "05", "06"],  // Quý 2 có các tháng 04, 05, 06
+                    "3": ["07", "08", "09"],  // Quý 3 có các tháng 07, 08, 09
+                    "4": ["10", "11", "12"],  // Quý 4 có các tháng 10, 11, 12
+                };
 
-        // Aggregation pipeline để lấy top 3 bác sĩ
-        const topDoctors = await AppointmentTicket.aggregate([
-            // Áp dụng bộ lọc dựa trên year, quarter và month
-            {$match: filter},
-            {
-                $group: {
-                    _id: "$doctorId", // Nhóm theo doctorId
-                    totalTickets: {$sum: 1} // Đếm số lượng phiếu hẹn
-                }
-            },
-            {
-                $sort: {totalTickets: -1} // Sắp xếp giảm dần theo số lượng phiếu hẹn
-            },
-            {
-                $limit: 3 // Lấy top 3
-            },
-            {
-                $lookup: {
-                    from: "employees", // Collection Employee
-                    localField: "_id", // Trường doctorId (_id trong group)
-                    foreignField: "employeeID", // Trường liên kết bên Employee
-                    as: "doctorInfo" // Kết quả truy vấn thông tin bác sĩ
-                }
-            },
-            {
-                $unwind: "$doctorInfo" // Tách mảng kết quả doctorInfo thành đối tượng
-            },
-            {
-                $project: {
-                    doctorId: "$_id", // Giữ lại trường doctorId
-                    doctorName: "$doctorInfo.employeeName", // Lấy tên bác sĩ
-                    totalTickets: 1 // Giữ nguyên số phiếu hẹn
+                const monthsInQuarter = quarters[quarter];
+
+                if (monthsInQuarter) {
+                    filter.requestedDate = {
+                        $regex: `^(?:.*\\/(${monthsInQuarter.join("|")})\\/.*)${year}$`
+                    };
                 }
             }
-        ]);
 
-        return res.status(200).json({topDoctors});
-    } catch (error) {
-        console.error("Error in getTopDoctor:", error);
-        return res.status(500).json({message: "Internal server error", error});
-    }
-};
-
-const appointmentSumary = async (req, res) => {
-    try {
-        const {year, quarter, month, doctorId} = req.query;
-
-        // Xây dựng bộ lọc cho AppointmentTicket
-        const filter = {};
-
-        if (doctorId) {
-            filter.doctorId = doctorId;
-        }
-
-        // Lọc theo năm
-        if (year && year !== "all") {
-            filter.requestedDate = {
-                $regex: `^.*${year}.*$`,  // Tìm kiếm năm trong chuỗi
-            };
-        }
-
-        // Lọc theo quý
-        if (year && year !== "all" && quarter) {
-            const quarters = {
-                "1": ["01", "02", "03"],  // Quý 1 có các tháng 01, 02, 03
-                "2": ["04", "05", "06"],  // Quý 2 có các tháng 04, 05, 06
-                "3": ["07", "08", "09"],  // Quý 3 có các tháng 07, 08, 09
-                "4": ["10", "11", "12"],  // Quý 4 có các tháng 10, 11, 12
-            };
-
-            const monthsInQuarter = quarters[quarter];
-
-            if (monthsInQuarter) {
+            // Lọc theo tháng và năm
+            if (month && year && year !== "all") {
                 filter.requestedDate = {
-                    $regex: `^(?:.*\\/(${monthsInQuarter.join("|")})\\/.*)${year}$`
+                    $regex: `^.*${month.padStart(2, '0')}/${year}.*$`, // Tìm tháng trong năm
                 };
             }
+
+            // Aggregation pipeline để lấy top 3 bác sĩ
+            const topDoctors = await AppointmentTicket.aggregate([
+                // Áp dụng bộ lọc dựa trên year, quarter và month
+                {$match: filter},
+                {
+                    $group: {
+                        _id: "$doctorId", // Nhóm theo doctorId
+                        totalTickets: {$sum: 1} // Đếm số lượng phiếu hẹn
+                    }
+                },
+                {
+                    $sort: {totalTickets: -1} // Sắp xếp giảm dần theo số lượng phiếu hẹn
+                },
+                {
+                    $limit: 3 // Lấy top 3
+                },
+                {
+                    $lookup: {
+                        from: "employees", // Collection Employee
+                        localField: "_id", // Trường doctorId (_id trong group)
+                        foreignField: "employeeID", // Trường liên kết bên Employee
+                        as: "doctorInfo" // Kết quả truy vấn thông tin bác sĩ
+                    }
+                },
+                {
+                    $unwind: "$doctorInfo" // Tách mảng kết quả doctorInfo thành đối tượng
+                },
+                {
+                    $project: {
+                        doctorId: "$_id", // Giữ lại trường doctorId
+                        doctorName: "$doctorInfo.employeeName", // Lấy tên bác sĩ
+                        totalTickets: 1 // Giữ nguyên số phiếu hẹn
+                    }
+                }
+            ]);
+
+            return res.status(200).json({topDoctors});
+        } catch (error) {
+            console.error("Error in getTopDoctor:", error);
+            return res.status(500).json({message: "Internal server error", error});
         }
+    };
 
-        // Lọc theo tháng và năm
-        if (month && year && year !== "all") {
-            filter.requestedDate = {
-                $regex: `^.*${month.padStart(2, '0')}/${year}.*$`, // Tìm tháng trong năm
-            };
+    const appointmentSumary = async (req, res) => {
+        try {
+            const {year, quarter, month, doctorId} = req.query;
+
+            // Xây dựng bộ lọc cho AppointmentTicket
+            const filter = {};
+
+            if (doctorId) {
+                filter.doctorId = doctorId;
+            }
+
+            // Lọc theo năm
+            if (year && year !== "all") {
+                filter.requestedDate = {
+                    $regex: `^.*${year}.*$`,  // Tìm kiếm năm trong chuỗi
+                };
+            }
+
+            // Lọc theo quý
+            if (year && year !== "all" && quarter) {
+                const quarters = {
+                    "1": ["01", "02", "03"],  // Quý 1 có các tháng 01, 02, 03
+                    "2": ["04", "05", "06"],  // Quý 2 có các tháng 04, 05, 06
+                    "3": ["07", "08", "09"],  // Quý 3 có các tháng 07, 08, 09
+                    "4": ["10", "11", "12"],  // Quý 4 có các tháng 10, 11, 12
+                };
+
+                const monthsInQuarter = quarters[quarter];
+
+                if (monthsInQuarter) {
+                    filter.requestedDate = {
+                        $regex: `^(?:.*\\/(${monthsInQuarter.join("|")})\\/.*)${year}$`
+                    };
+                }
+            }
+
+            // Lọc theo tháng và năm
+            if (month && year && year !== "all") {
+                filter.requestedDate = {
+                    $regex: `^.*${month.padStart(2, '0')}/${year}.*$`, // Tìm tháng trong năm
+                };
+            }
+
+            // Tính toán số lượng theo từng trạng thái với bộ lọc
+            const [totalAppointments, cancelled, waiting, done] = await Promise.all([
+                AppointmentTicket.countDocuments(filter), // Tổng số lịch hẹn theo bộ lọc
+                AppointmentTicket.countDocuments({...filter, status: "cancelled"}), // Lịch hẹn bị hủy
+                AppointmentTicket.countDocuments({...filter, status: "waiting"}), // Lịch hẹn đang chờ
+                AppointmentTicket.countDocuments({...filter, status: "done"}) // Lịch hẹn đã hoàn thành
+            ]);
+
+            // Trả về dữ liệu
+            res.status(200).json({
+                totalAppointments,
+                cancelled,
+                waiting,
+                done
+            });
+        } catch (error) {
+            console.error("Error fetching appointment summary:", error);
+            res.status(500).json({error: "Internal server error"});
         }
-
-        // Tính toán số lượng theo từng trạng thái với bộ lọc
-        const [totalAppointments, cancelled, waiting, done] = await Promise.all([
-            AppointmentTicket.countDocuments(filter), // Tổng số lịch hẹn theo bộ lọc
-            AppointmentTicket.countDocuments({...filter, status: "cancelled"}), // Lịch hẹn bị hủy
-            AppointmentTicket.countDocuments({...filter, status: "waiting"}), // Lịch hẹn đang chờ
-            AppointmentTicket.countDocuments({...filter, status: "done"}) // Lịch hẹn đã hoàn thành
-        ]);
-
-        // Trả về dữ liệu
-        res.status(200).json({
-            totalAppointments,
-            cancelled,
-            waiting,
-            done
-        });
-    } catch (error) {
-        console.error("Error fetching appointment summary:", error);
-        res.status(500).json({error: "Internal server error"});
-    }
-};
+    };
 
 // lấy lịch hẹn đã hoàn thành của bac sĩ
-const getTicketDoneOfDoctor = async (req, res) => {
-    try {
-        const {year, quarter, month, doctorId} = req.query;
+    const getTicketDoneOfDoctor = async (req, res) => {
+        try {
+            const {year, quarter, month, doctorId} = req.query;
 
-        // Tạo bộ lọc
-        const filter = {
-            status: "done", // Chỉ lấy các lịch hẹn có trạng thái "done",
-            doctorId: doctorId ? doctorId : null
-        };
-
-
-        // Lọc theo năm
-        if (year && year !== "all") {
-            filter.doneAt = {
-                $regex: `\\d{2}/\\d{2}/${year} \\d{2}:\\d{2}:\\d{2}`,
-            };
-        }
-
-        // Lọc theo quý
-        if (quarter && year && year !== "all") {
-            const quarters = {
-                "1": ["01", "02", "03"], // Quý 1: Tháng 1, 2, 3
-                "2": ["04", "05", "06"], // Quý 2: Tháng 4, 5, 6
-                "3": ["07", "08", "09"], // Quý 3: Tháng 7, 8, 9
-                "4": ["10", "11", "12"], // Quý 4: Tháng 10, 11, 12
+            // Tạo bộ lọc
+            const filter = {
+                status: "done", // Chỉ lấy các lịch hẹn có trạng thái "done",
+                doctorId: doctorId ? doctorId : null
             };
 
-            const monthsInQuarter = quarters[quarter];
-            if (monthsInQuarter) {
+
+            // Lọc theo năm
+            if (year && year !== "all") {
                 filter.doneAt = {
-                    $regex: `\\d{2}/(${monthsInQuarter.join("|")})/${year} \\d{2}:\\d{2}:\\d{2}`,
+                    $regex: `\\d{2}/\\d{2}/${year} \\d{2}:\\d{2}:\\d{2}`,
                 };
             }
+
+            // Lọc theo quý
+            if (quarter && year && year !== "all") {
+                const quarters = {
+                    "1": ["01", "02", "03"], // Quý 1: Tháng 1, 2, 3
+                    "2": ["04", "05", "06"], // Quý 2: Tháng 4, 5, 6
+                    "3": ["07", "08", "09"], // Quý 3: Tháng 7, 8, 9
+                    "4": ["10", "11", "12"], // Quý 4: Tháng 10, 11, 12
+                };
+
+                const monthsInQuarter = quarters[quarter];
+                if (monthsInQuarter) {
+                    filter.doneAt = {
+                        $regex: `\\d{2}/(${monthsInQuarter.join("|")})/${year} \\d{2}:\\d{2}:\\d{2}`,
+                    };
+                }
+            }
+
+            // Lọc theo tháng và năm
+            if (month && year && year !== "all") {
+                filter.doneAt = {
+                    $regex: `\\d{2}/${month.padStart(2, "0")}/${year} \\d{2}:\\d{2}:\\d{2}`,
+                };
+            }
+
+            // Lấy dữ liệu từ cơ sở dữ liệu với bộ lọc
+            const appointmentTickets = await AppointmentTicket.find(filter).populate({
+                path: "customer",
+                select: "_id name phone email gender",
+            });
+
+            res.status(200).json({appointmentTickets});
+        } catch (error) {
+            console.log("Error in getTicketDoneOfDoctor:", error);
+            res.status(500).json({message: error.message});
         }
+    };
 
-        // Lọc theo tháng và năm
-        if (month && year && year !== "all") {
-            filter.doneAt = {
-                $regex: `\\d{2}/${month.padStart(2, "0")}/${year} \\d{2}:\\d{2}:\\d{2}`,
-            };
-        }
-
-        // Lấy dữ liệu từ cơ sở dữ liệu với bộ lọc
-        const appointmentTickets = await AppointmentTicket.find(filter).populate({
-            path: "customer",
-            select: "_id name phone email gender",
-        });
-
-        res.status(200).json({appointmentTickets});
-    } catch (error) {
-        console.log("Error in getTicketDoneOfDoctor:", error);
-        res.status(500).json({message: error.message});
-    }
-};
-
-module.exports = {
-    getAllAppointmentTickets,
-    getAppointmentTicketsByDoctorId,
-    getAppointmentTicketById,
-    createAppointmentTicket,
-    getAvailableDoctors,
-    cancelTicket,
-    confirmCustomerIsArrived,
-    getTopDoctor,
-    appointmentSumary,
-    getTimeOfDoctor,
-    getAvailableDoctorOffline,
-    getTicketDoneOfDoctor
-};
+    module.exports = {
+        getAllAppointmentTickets,
+        getAppointmentTicketsByDoctorId,
+        getAppointmentTicketById,
+        createAppointmentTicket,
+        getAvailableDoctors,
+        cancelTicket,
+        confirmCustomerIsArrived,
+        getTopDoctor,
+        appointmentSumary,
+        getTimeOfDoctor,
+        getAvailableDoctorOffline,
+        getTicketDoneOfDoctor
+    };
