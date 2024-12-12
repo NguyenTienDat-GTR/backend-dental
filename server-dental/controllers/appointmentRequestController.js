@@ -426,6 +426,7 @@ const responseRequest = async (req, res) => {
                 doctorId: doctorID,
                 requestedDate: request.appointmentDate,
                 requestedTime: request.appointmentTime,
+                status: { $nin: ["cancelled", "done"] }
             });
 
             if (isDuplicate) {

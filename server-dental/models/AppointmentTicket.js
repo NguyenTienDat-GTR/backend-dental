@@ -92,7 +92,7 @@ const appointmentTicketSchema = new mongoose.Schema({
 });
 
 // Đặt unique index
-appointmentTicketSchema.index({doctorId: 1, requestedDate: 1, requestedTime: 1}, {unique: true});
+// appointmentTicketSchema.index({doctorId: 1, requestedDate: 1, requestedTime: 1}, {unique: true});
 
 // Tạo model Phiếu Hẹn
 const AppointmentTicket = mongoose.model(

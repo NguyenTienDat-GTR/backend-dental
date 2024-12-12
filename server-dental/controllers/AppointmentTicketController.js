@@ -182,6 +182,7 @@ const createAppointmentTicket = async (req, res) => {
             doctorId,
             requestedDate,
             requestedTime,
+            status: { $nin: ["cancelled", "done"] }
         }).session(session);
 
         if (isDuplicate) {
