@@ -63,12 +63,16 @@ const updateArticle = async (req, res) => {
 
         // Tìm dịch vụ dựa vào ID
         const service = await Service.findById(id).populate('blog'); // Populate để lấy bài viết liên quan
-        if (!service || !service.blog) {
+        if (!service) {
             return res.status(404).json({ message: "Dịch vụ hoặc bài viết không tồn tại" });
         }
 
         // Lấy bài viết liên quan đến dịch vụ
-        const article = service.blog;
+        const article = await Article.findById(service.blog._id);
+
+        if (!article) {
+            return res.status(404).json({ message: "bài viết không tồn tại" });
+        }
 
         // Cập nhật thông tin bài viết, giữ giá trị cũ nếu không có dữ liệu mới
         article.title = title || article.title;

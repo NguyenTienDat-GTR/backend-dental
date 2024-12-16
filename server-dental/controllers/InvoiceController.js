@@ -215,7 +215,11 @@ const confirmPayment = async (req, res) => {
             return res.status(400).json({message: "invoiceId và paidBy là bắt buộc."});
         }
 
-        const invoice = await Invoice.findById(invoiceId);
+        const invoice = await Invoice.findById(invoiceId).populate({
+            path: 'usedServices.service',
+            model: 'Service',
+            select: 'id name'
+        });
 
         if (!invoice) {
             return res.status(404).json({message: "Không tìm thấy hóa đơn."});
@@ -324,7 +328,7 @@ const calculateTotalAmount = async (req, res) => {
 // api trả về tổng tiền của hóa đơn đã thanh toán và cha thanh toán
 const getTotalAmount = async (req, res) => {
     try {
-        const { year, quarter, month } = req.query; // Lấy year, quarter, và month từ query string
+        const {year, quarter, month} = req.query; // Lấy year, quarter, và month từ query string
 
         // Lấy tất cả hóa đơn từ database (không lọc theo trạng thái thanh toán)
         const invoices = await Invoice.find();
@@ -385,10 +389,10 @@ const getTotalAmount = async (req, res) => {
         });
 
         // Trả về kết quả
-        res.status(200).json({ unpaidAmount, paidAmount });
+        res.status(200).json({unpaidAmount, paidAmount});
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Đã xảy ra lỗi khi tính tổng tiền hóa đơn", error: error.message });
+        res.status(500).json({message: "Đã xảy ra lỗi khi tính tổng tiền hóa đơn", error: error.message});
     }
 };
 

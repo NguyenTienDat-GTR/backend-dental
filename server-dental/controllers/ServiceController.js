@@ -130,23 +130,22 @@ const getAllServices = async (req, res) => {
 const updateService = async (req, res) => {
     try {
         const {id} = req.params; // Lấy ID dịch vụ
-        const {price, description, priceRange, unit, discount, duration} = req.body;
+        const {name,price, description, priceRange, unit, discount, duration} = req.body;
         // Tìm dịch vụ cần cập nhật
-        const service = await Service.findById(id);
+        const service = await Service.findByIdAndUpdate(id, {
+            name,
+            price,
+            description,
+            priceRange,
+            unit,
+            discount,
+            duration
+        }, {
+            new: true
+        });
         if (!service) {
             return res.status(404).json({message: "Dịch vụ không tồn tại"});
         }
-
-        // Cập nhật các trường được gửi (chỉ cập nhật nếu giá trị mới tồn tại)
-        service.price = price !== undefined ? price : service.price;
-        service.description = description !== undefined ? description : service.description;
-        service.priceRange = priceRange !== undefined ? priceRange : service.priceRange;
-        service.unit = unit !== undefined ? unit : service.unit;
-        service.discount = discount !== undefined ? discount : service.discount;
-        service.duration = duration !== undefined ? duration : service.duration;
-
-        // Lưu dịch vụ sau khi cập nhật
-        await service.save();
 
         return res.status(200).json({
             message: "Cập nhật dịch vụ thành công",
